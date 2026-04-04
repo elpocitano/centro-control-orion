@@ -169,9 +169,9 @@
         <svg id="trajectorySvg" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
             <rect width="800" height="400" fill="#0A0F2A" rx="20"/>
             <circle cx="150" cy="200" r="30" fill="#2E86AB" stroke="#0088FF" stroke-width="2"/>
-            <text x="150" y="245" fill="white" font-size="12" text-anchor="middle">🌍 TIERRA</text>
+            <text x="150" y="245" fill="white" font-size="12" text-anchor="middle">TIERRA</text>
             <circle cx="650" cy="200" r="20" fill="#B0B0B0" stroke="#AAAAAA" stroke-width="2"/>
-            <text x="650" y="235" fill="white" font-size="12" text-anchor="middle">🌙 LUNA</text>
+            <text x="650" y="235" fill="white" font-size="12" text-anchor="middle">LUNA</text>
             <path id="flightPath" d="M 180 200 Q 400 80 630 200" stroke="#00FF88" stroke-width="3" fill="none" stroke-dasharray="8 6"/>
             <circle id="orionPosition" cx="180" cy="200" r="8" fill="#FFB800" stroke="white" stroke-width="2"/>
         </svg>
@@ -242,38 +242,57 @@
             OUT_UNITS: "'KM-S'"
         });
 
-        try {
-            const response = await fetch(`${HORIZONS_API}?${params}`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            
-            if (data.result) {
-                const rgMatch = data.result.match(/RG=\s*([\d.E+-]+)/i);
-                const rrMatch = data.result.match(/RR=\s*([\d.E+-]+)/i);
-                const ltMatch = data.result.match(/LT=\s*([\d.E+-]+)/i);
+        const fullUrl = `${HORIZONS_API}?${params}`;
+        
+        // Lista de proxies CORS públicos (ordenados por confiabilidad)
+        const PROXIES = [
+            { name: 'allorigins', url: 'https://api.allorigins.win/raw?url=' },
+            { name: 'corsproxy', url: 'https://corsproxy.io/?' },
+            { name: 'cors-anywhere', url: 'https://cors-anywhere.herokuapp.com/' },
+            { name: 'proxy.cors', url: 'https://proxy.cors.sh/' },
+            { name: 'cors-bridge', url: 'https://corsbridge.onrender.com/' },
+            { name: 'thingproxy', url: 'https://thingproxy.freeboard.io/fetch/' }
+        ];
+        
+        for (let i = 0; i < PROXIES.length; i++) {
+            const proxy = PROXIES[i];
+            try {
+                document.getElementById('connectionStatus').innerHTML = `PROBANDO ${proxy.name}...`;
+                document.getElementById('connectionStatus').style.color = '#FFB800';
                 
-                if (rgMatch && rrMatch) {
-                    realDistance = parseFloat(rgMatch[1]);
-                    realSpeed = parseFloat(rrMatch[1]) * 3600;
-                    realLightTime = ltMatch ? parseFloat(ltMatch[1]) : null;
-                    realDataAvailable = true;
-                    lastFetchTime = Date.now();
+                const response = await fetch(proxy.url + encodeURIComponent(fullUrl));
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                if (data.result) {
+                    const rgMatch = data.result.match(/RG=\s*([\d.E+-]+)/i);
+                    const rrMatch = data.result.match(/RR=\s*([\d.E+-]+)/i);
                     
-                    document.getElementById('connectionStatus').innerHTML = 'DATOS JPL EN VIVO';
-                    document.getElementById('connectionStatus').style.color = '#00FF88';
-                    document.getElementById('sourceEarth').innerHTML = '✅ Fuente: JPL Horizons';
-                    return;
+                    if (rgMatch && rrMatch) {
+                        realDistance = parseFloat(rgMatch[1]);
+                        realSpeed = parseFloat(rrMatch[1]) * 3600;
+                        realDataAvailable = true;
+                        lastFetchTime = Date.now();
+                        
+                        document.getElementById('connectionStatus').innerHTML = ` DATOS REALES (${proxy.name})`;
+                        document.getElementById('connectionStatus').style.color = '#00FF88';
+                        document.getElementById('sourceEarth').innerHTML = ` Fuente: JPL Horizons vía ${proxy.name}`;
+                        return true;
+                    }
                 }
+            } catch (e) {
+                console.warn(`Proxy ${proxy.name} falló:`, e);
             }
-            throw new Error('No se encontraron datos');
-        } catch (error) {
-            console.warn('Error fetching JPL data:', error);
-            realDataAvailable = false;
-            document.getElementById('connectionStatus').innerHTML = 'MODO RESPALDO';
-            document.getElementById('connectionStatus').style.color = '#FFB800';
-            document.getElementById('sourceEarth').innerHTML = '⚠️ Usando estimación científica';
         }
-    }
+        
+        // Si todos los proxies fallan, usar respaldo
+        realDataAvailable = false;
+        document.getElementById('connectionStatus').innerHTML = 'DATOS BASADOS EN TRAYECTORIA OFICIAL';
+        document.getElementById('connectionStatus').style.color = '#FFB800';
+        document.getElementById('sourceEarth').innerHTML = 'Fuente: Trayectoria oficial Artemis II (NASA)';
+        return false;
+    } 
+
 
     // Valores de respaldo
     function getBackupValues(progress) {
@@ -382,7 +401,7 @@
                 <div class="solar-data">🕒 <strong>Actualizado:</strong> ${latest[0]} ${latest[1]} UTC</div>
             `;
         } catch (error) {
-            document.getElementById('solarWeather').innerHTML = '⚠️ Clima solar no disponible';
+            document.getElementById('solarWeather').innerHTML = 'Clima solar no disponible';
         }
     }
 
@@ -416,7 +435,7 @@
                         <i class="fas fa-newspaper"></i> 
                         <a href="${news.link}" target="_blank">${news.title}</a>
                         <div style="font-size: 0.7rem; margin-top: 3px;">${new Date(news.pubDate).toLocaleString('es-419')}</div>
-                        <div class="news-source">📡 Fuente: SpaceNews</div>
+                        <div class="news-source">Fuente: SpaceNews</div>
                     </div>
                 `).join('');
             } else {
@@ -474,13 +493,13 @@
         document.getElementById('speedMs').innerHTML = (speedKmh / 3600).toFixed(1);
         document.getElementById('signalDelay').innerHTML = delaySec + ' s';
         document.getElementById('roundTrip').innerHTML = (parseFloat(delaySec) * 2).toFixed(3);
-        document.getElementById('trendEarth').innerHTML = progress < 0.55 ? '🔼 Alejándose de la Tierra' : '🔽 Regresando a la Tierra';
+        document.getElementById('trendEarth').innerHTML = progress < 0.55 ? 'Alejándose de la Tierra' : 'Regresando a la Tierra';
         document.getElementById('phaseName').innerHTML = currentPhase.name;
-        document.getElementById('missionElapsed').innerHTML = `⏱️ ${getElapsedTime()}`;
+        document.getElementById('missionElapsed').innerHTML = `⏱${getElapsedTime()}`;
         
         const nowDate = new Date();
         let next = MISSION_EVENTS.find(e => new Date(e.time) > nowDate);
-        document.getElementById('nextEvent').innerHTML = next ? `📅 Próximo: ${next.event}` : '✅ Misión completada';
+        document.getElementById('nextEvent').innerHTML = next ? `Próximo: ${next.event}` : 'Misión completada';
         
         drawPhaseClock(progress);
         updateTrajectory(progress);
