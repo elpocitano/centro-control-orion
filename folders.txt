@@ -1,0 +1,6 @@
+centro-control-orion/
+├── index.html
+├── horizons.js
+├── styles.css (opcional, pero lo incluimos)
+├── .gitignore
+└── README.md
