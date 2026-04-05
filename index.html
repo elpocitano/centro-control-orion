@@ -900,9 +900,9 @@
         
         const moonDist = calculateMoonDistance(earthDist);
         const delaySec = lightTime.toFixed(3);
-        // Calcular progreso real basado en distancias
-        const totalDist = earthDist + moonDist;
-        const realProgress = totalDist > 0 ? earthDist / totalDist : 0;
+
+        // El progreso real se basa en el tiempo transcurrido de la misión (10 días)
+        const realProgress = progress;
         
         document.getElementById('distanceEarth').innerHTML = Math.round(earthDist).toLocaleString('es-419') + ' km';
         document.getElementById('distanceMoon').innerHTML = Math.round(moonDist).toLocaleString('es-419') + ' km';
