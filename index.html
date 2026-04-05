@@ -470,22 +470,28 @@
     } 
 
     // DSN Status - Red de Espacio Profundo (datos fijos + estimación)
+    // DSN Status - Red de Espacio Profundo (mejorado)
     async function fetchDSNStatus() {
         const dsnDiv = document.getElementById('dsnStatus');
         if (!dsnDiv) return;
         
-        // Datos fijos basados en la configuración real de NASA DSN
-        const dsnData = {
-            madrid: { antenas: 6, nombres: "DSS63(70m), DSS65(34m), DSS53-56(34m)" },
-            goldstone: { antenas: 4, nombres: "DSS14(70m), DSS24-26(34m)" },
-            canberra: { antenas: 4, nombres: "DSS43(70m), DSS34-36(34m)" }
-        };
-        
+        // Datos basados en la configuración real de NASA DSN
         dsnDiv.innerHTML = `
-            <div class="solar-data"><i class="fas fa-satellite-dish"></i> <strong>Madrid (España):</strong> ${dsnData.madrid.antenas} antenas</div>
-            <div class="solar-data"><i class="fas fa-satellite-dish"></i> <strong>Goldstone (USA):</strong> ${dsnData.goldstone.antenas} antenas</div>
-            <div class="solar-data"><i class="fas fa-satellite-dish"></i> <strong>Canberra (Australia):</strong> ${dsnData.canberra.antenas} antenas</div>
-            <div class="solar-data" style="font-size: 0.7rem; color: #FFB800;">📍 Orion se comunica con estas estaciones</div>
+            <div class="solar-data">
+                <i class="fas fa-satellite-dish"></i> <strong>Madrid (España)</strong><br>
+                📡 6 antenas · DSS63 (70m) + DSS65 (34m) + DSS53-56 (34m)
+            </div>
+            <div class="solar-data">
+                <i class="fas fa-satellite-dish"></i> <strong>Goldstone (USA)</strong><br>
+                📡 4 antenas · DSS14 (70m) + DSS24-26 (34m)
+            </div>
+            <div class="solar-data">
+                <i class="fas fa-satellite-dish"></i> <strong>Canberra (Australia)</strong><br>
+                📡 4 antenas · DSS43 (70m) + DSS34-36 (34m)
+            </div>
+            <div class="solar-data" style="font-size: 0.7rem; color: #FFB800; border-bottom: none;">
+                🛰️ Orion se comunica vía Red de Espacio Profundo (DSN)
+            </div>
         `;
     }
 
