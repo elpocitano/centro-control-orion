@@ -258,6 +258,85 @@
         .live-badge, svg text, svg rect {
             transition: all 0.3s ease;
         }
+        /* ============================================ */
+        /* CARD DE ETAPAS Y FASES DE LA MISIÓN          */
+        /* ============================================ */
+        .phase-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 6px;
+        }
+        .phase-item {
+            flex: 1;
+            text-align: center;
+            padding: 6px 4px;
+            border-radius: 8px;
+            cursor: help;
+            transition: all 0.2s ease;
+            position: relative;
+            background: rgba(0, 136, 255, 0.05);
+            border-bottom: 2px solid transparent;
+        }
+        .phase-item.active {
+            background: rgba(0, 136, 255, 0.2);
+            border-bottom-color: #00FF88;
+            transform: translateY(-2px);
+        }
+        .phase-item.completed {
+            opacity: 0.6;
+        }
+        .phase-item:hover {
+            background: rgba(0, 136, 255, 0.15);
+            transform: translateY(-1px);
+        }
+        .phase-icon {
+            font-size: 1.2rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .phase-name {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .phase-desc {
+            font-size: 0.55rem;
+            color: rgba(255, 255, 255, 0.5);
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            z-index: 100;
+            margin-bottom: 5px;
+            pointer-events: none;
+        }
+        .phase-item:hover .phase-desc {
+            display: block;
+        }
+        
+        body.light-theme .phase-item {
+            background: rgba(0, 136, 255, 0.08);
+        }
+        body.light-theme .phase-item.active {
+            background: rgba(0, 136, 255, 0.25);
+        }
+        body.light-theme .phase-desc {
+            background: rgba(200, 200, 200, 0.95);
+            color: #0A0F2A;
+        }
+        
+        @media (max-width: 700px) {
+            .phase-name { font-size: 0.55rem; }
+            .phase-icon { font-size: 1rem; }
+            .phase-item { padding: 4px 2px; }
+        }
     </style>
 </head>
 <body>
@@ -305,28 +384,34 @@
         </div>
     </div>
 
-    <!-- Clima Solar + DSN + Fases (3 columnas en desktop, 1 en móvil) -->
+    <!-- GRILLA DE CARDS CLIMA SOLAR, DSN Y FASES (3 columnas en desktop, 1 en móvil) -->
     <div class="grid-3-desktop">
+        <!-- CARD CLIMA SOLAR -->
         <div class="card">
             <div class="card-header"><i class="fas fa-sun"></i> CLIMA SOLAR · NOAA SWPC</div>
             <div id="solarWeather">Cargando datos solares...</div>
         </div>
 
+        <!-- CARD RED DSN NASA -->
         <div class="card">
             <div class="card-header"><i class="fas fa-satellite-dish"></i> RED DSN · NASA</div>
             <div id="dsnStatus">Cargando...</div>
             <div id="dsnMap" style="height: 220px; width: 100%; margin-top: 10px; border-radius: 12px; overflow: hidden;"></div>
         </div>
 
+        <!-- CARD ETAPAS O FASES DE LA MISION -->
         <div class="card">
             <div class="card-header"><i class="fas fa-chart-pie"></i> FASES DE LA MISIÓN</div>
             <div class="phase-clock" id="phaseClock"></div>
             <div id="phaseName" style="text-align: center; font-weight: bold; margin-top: 10px;">--</div>
             <div id="missionElapsed" style="text-align: center; font-size: 0.8rem; margin-top: 5px;"></div>
             <div id="nextEvent" style="text-align: center; font-size: 0.7rem; color: #FFB800; margin-top: 5px;"></div>
+            <!-- Referencias sobre las fases -->
+            <div class="phase-container" id="phaseContainer"></div>
         </div>
     </div>
 
+    <!-- GRILLA DE CARDS DE CLIMA Y NOTICIAS -->
     <div class="grid-2">
         <div class="card">
             <div class="card-header"><i class="fas fa-meteor"></i> TORMENTAS GEOMAGNÉTICAS · NASA DONKI</div>
@@ -340,7 +425,7 @@
     </div> 
 
 
-    <!-- Trayectoria + Noticias (2 columnas) -->
+    <!-- GRILLA DE CARDS de Trayectoria + Noticias (2 columnas) -->
     <div class="grid-2">
         <div class="card">
             <div class="card-header"><i class="fas fa-draw-polygon"></i> TRAYECTORIA · TIERRA → LUNA</div>
@@ -535,6 +620,43 @@
         svg += `</svg>`;
         
         document.getElementById('phaseClock').innerHTML = svg;
+    }
+
+    // Generar indicadores visuales o referencias de fases o etapas 
+    const MISSION_PHASES = [
+        { name: 'PRE-LANZAMIENTO', icon: '🚀', start: 0.00, end: 0.02, color: '#6B8CBF', desc: 'Esperando despegue desde LC-39B' },
+        { name: 'ASCENSO', icon: '⬆️', start: 0.02, end: 0.08, color: '#FFB800', desc: 'SLS impulsando Orion hacia el espacio' },
+        { name: 'ÓRBITA TERRESTRE', icon: '🌍', start: 0.08, end: 0.15, color: '#0088FF', desc: 'Orbitando Tierra para ajustes' },
+        { name: 'TLI', icon: '🔥', start: 0.15, end: 0.22, color: '#FF6600', desc: 'Inyección translunar hacia la Luna' },
+        { name: 'TRÁNSITO', icon: '🌕', start: 0.22, end: 0.45, color: '#00FF88', desc: 'Viaje de 4 días hacia la Luna' },
+        { name: 'APROXIMACIÓN', icon: '📍', start: 0.45, end: 0.55, color: '#FFB800', desc: 'Acercándose a la Luna' },
+        { name: 'SOBREVUELO', icon: '🌙', start: 0.55, end: 0.62, color: '#E8F0FF', desc: 'Paso detrás de la Luna (9,650 km)' },
+        { name: 'RETORNO', icon: '🔄', start: 0.62, end: 0.85, color: '#0088FF', desc: 'Regreso a la Tierra' },
+        { name: 'REINGRESO', icon: '🔥', start: 0.85, end: 0.95, color: '#FF6600', desc: 'Entrada atmosférica a 25,000 mph' },
+        { name: 'AMERIZAJE', icon: '🪂', start: 0.95, end: 1.00, color: '#00FF88', desc: 'Final de misión en el Pacífico' }
+    ];
+    
+    function updatePhaseIndicators(progress) {
+        const container = document.getElementById('phaseContainer');
+        if (!container) return;
+        
+        let html = '';
+        for (let i = 0; i < MISSION_PHASES.length; i++) {
+            const phase = MISSION_PHASES[i];
+            const isActive = progress >= phase.start && progress <= phase.end;
+            const isCompleted = progress > phase.end;
+            const activeClass = isActive ? 'active' : '';
+            const completedClass = isCompleted ? 'completed' : '';
+            
+            html += `
+                <div class="phase-item ${activeClass} ${completedClass}" style="border-bottom-color: ${phase.color};">
+                    <div class="phase-icon">${phase.icon}</div>
+                    <div class="phase-name" style="color: ${phase.color};">${phase.name}</div>
+                    <div class="phase-desc">${phase.desc}</div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
     }
 
     // Puntos de control para la trayectoria completa (ida + vuelta)
@@ -963,6 +1085,7 @@
         document.getElementById('nextEvent').innerHTML = next ? `Próximo: ${next.event}` : 'Misión completada';
         
         drawPhaseClock(progress);
+        updatePhaseIndicators(progress);
         updateTrajectory(realProgress);
     }
 
