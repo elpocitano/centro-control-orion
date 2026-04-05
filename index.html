@@ -27,13 +27,13 @@
         }
         .local-clock {
             font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            background: rgba(0,136,255,0.1);
-            padding: 5px 12px;
+            font-size: 0.8rem;
+            background: rgba(0,136,255,0.08);
+            padding: 6px 12px;
             border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            display: inline-block;
+            width: auto;
+            margin: 0 auto;
         }
         .title-section h1 {
             font-size: 1.8rem;
@@ -91,6 +91,8 @@
             max-width: 400px;
             background: #0A0F2A;
             border-radius: 20px;
+            display: block;
+            margin: 0 auto;
         }
         .news-item a {
             color: #00FF88;
@@ -123,10 +125,6 @@
             <h1><i class="fas fa-space-shuttle"></i> CENTRO DE CONTROL ORION</h1>
             <p>Datos REALES · NASA JPL Horizons · Misión Artemis II</p>
         </div>
-        <div class="local-clock">
-            <i class="fas fa-clock"></i> <span id="localTime">--:--:--</span>
-            <span id="timezone"></span>
-        </div>
         <div class="live-badge">
             <i class="fas fa-circle"></i> 
             <span id="connectionStatus">DATOS JPL EN VIVO</span>
@@ -158,6 +156,7 @@
         </div>
     </div>
 
+
     <div class="grid-2">
         <div class="card">
             <div class="card-header"><i class="fas fa-sun"></i> CLIMA SOLAR · NOAA SWPC</div>
@@ -173,29 +172,38 @@
         </div>
     </div>
 
-    <div class="card" style="margin-bottom: 30px;">
-        <div class="card-header"><i class="fas fa-newspaper"></i> NOTICIAS · ARTEMIS II</div>
-        <div id="newsFeed">Cargando noticias...</div>
-    </div>
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-draw-polygon"></i> TRAYECTORIA · TIERRA → LUNA</div>
+            <svg id="trajectorySvg" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+                <rect width="800" height="400" fill="#0A0F2A" rx="20"/>
+                <circle cx="150" cy="200" r="30" fill="#2E86AB" stroke="#0088FF" stroke-width="2"/>
+                <text x="150" y="245" fill="white" font-size="12" text-anchor="middle">TIERRA</text>
+                <circle cx="650" cy="200" r="20" fill="#B0B0B0" stroke="#AAAAAA" stroke-width="2"/>
+                <text x="650" y="235" fill="white" font-size="12" text-anchor="middle">LUNA</text>
+                <path id="flightPath" d="M 180 200 Q 400 80 630 200" stroke="#00FF88" stroke-width="3" fill="none" stroke-dasharray="8 6"/>
+                <circle id="orionPosition" cx="180" cy="200" r="8" fill="#FFB800" stroke="white" stroke-width="2"/>
+            </svg>
+            <div style="text-align: center; margin-top: 10px;">Posición actual de Orion en la trayectoria</div>
+            <div style="text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(0,136,255,0.2);">
+                <div class="local-clock" style="display: inline-block;">
+                    <i class="fas fa-clock"></i> Hora local: <span id="localTime">--:--:--</span>
+                    <span id="timezone"></span>
+                </div>
+            </div>
+        </div>
 
-    <div class="card">
-        <div class="card-header"><i class="fas fa-draw-polygon"></i> TRAYECTORIA · TIERRA → LUNA</div>
-        <svg id="trajectorySvg" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
-            <rect width="800" height="400" fill="#0A0F2A" rx="20"/>
-            <circle cx="150" cy="200" r="30" fill="#2E86AB" stroke="#0088FF" stroke-width="2"/>
-            <text x="150" y="245" fill="white" font-size="12" text-anchor="middle">TIERRA</text>
-            <circle cx="650" cy="200" r="20" fill="#B0B0B0" stroke="#AAAAAA" stroke-width="2"/>
-            <text x="650" y="235" fill="white" font-size="12" text-anchor="middle">LUNA</text>
-            <path id="flightPath" d="M 180 200 Q 400 80 630 200" stroke="#00FF88" stroke-width="3" fill="none" stroke-dasharray="8 6"/>
-            <circle id="orionPosition" cx="180" cy="200" r="8" fill="#FFB800" stroke="white" stroke-width="2"/>
-        </svg>
-        <div style="text-align: center; margin-top: 10px;">📍 Posición actual de Orion en la trayectoria</div>
+        <div class="card">
+            <div class="card-header"><i class="fas fa-newspaper"></i> NOTICIAS · ARTEMIS II</div>
+            <div id="newsFeed">Cargando noticias...</div>
+        </div>
     </div>
 
     <div class="footer">
         <i class="fab fa-github"></i> Dashboard: elpocitano@gmail.com · Datos: NASA JPL Horizons · Clima: NOAA SWPC · Noticias: SpaceNews
         <br><small>Basado en el trabajo de Ryan Fox (artemis-ii-cli, MIT License)</small>
     </div>
+
 </div>
 
 <script>
