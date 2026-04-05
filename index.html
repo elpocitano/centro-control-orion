@@ -129,6 +129,90 @@
         .leaflet-control-attribution {
             font-size: 8px;
         }
+                /* ============================================ */
+        /* TEMA CLARO (Light Mode)                      */
+        /* ============================================ */
+        body.light-theme {
+            background: linear-gradient(135deg, #E8F0FF 0%, #D0E0FF 100%);
+            color: #0A0F2A;
+        }
+        
+        body.light-theme .card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 136, 255, 0.3);
+        }
+        
+        body.light-theme .card-header {
+            color: #0055AA;
+            border-bottom-color: rgba(0, 136, 255, 0.3);
+        }
+        
+        body.light-theme .kpi-value {
+            color: #0A0F2A;
+        }
+        
+        body.light-theme .trend {
+            color: #0088FF;
+        }
+        
+        body.light-theme .data-source {
+            color: #FF6600;
+        }
+        
+        body.light-theme .solar-data, 
+        body.light-theme .news-item {
+            border-bottom-color: rgba(0, 136, 255, 0.15);
+        }
+        
+        body.light-theme .solar-data a,
+        body.light-theme .news-item a {
+            color: #0055AA;
+        }
+        
+        body.light-theme .phase-name {
+            color: #0A0F2A;
+        }
+        
+        body.light-theme .local-clock {
+            background: rgba(0, 136, 255, 0.12);
+            color: #0A0F2A;
+        }
+        
+        body.light-theme svg text {
+            fill: #0A0F2A;
+        }
+        
+        body.light-theme svg rect {
+            fill: #E8F0FF;
+        }
+        
+        body.light-theme .footer {
+            color: #3A6A9C;
+            border-top-color: rgba(0, 136, 255, 0.2);
+        }
+        
+        body.light-theme #themeToggle {
+            background: rgba(0, 136, 255, 0.15);
+            border-color: rgba(0, 136, 255, 0.5);
+            color: #0A0F2A;
+        }
+        
+        body.light-theme .live-badge {
+            background: rgba(0, 136, 255, 0.1);
+            border-left-color: #0088FF;
+        }
+        
+        body.light-theme .live-badge i {
+            color: #0088FF;
+        }
+        
+        /* Transición suave para todos los elementos */
+        body, .card, .card-header, .kpi-value, .trend, .data-source,
+        .solar-data, .news-item, .local-clock, .footer, #themeToggle,
+        .live-badge, svg text, svg rect {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -138,9 +222,14 @@
             <h1><i class="fas fa-space-shuttle"></i> CENTRO DE CONTROL ORION</h1>
             <p>Datos REALES · NASA JPL Horizons · Misión Artemis II</p>
         </div>
-        <div class="live-badge">
-            <i class="fas fa-circle"></i> 
-            <span id="connectionStatus">DATOS JPL EN VIVO</span>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <button id="themeToggle" style="background: rgba(0,136,255,0.2); border: 1px solid rgba(0,136,255,0.4); border-radius: 40px; padding: 8px 16px; cursor: pointer; color: #E8F0FF; font-family: monospace; transition: all 0.3s ease;">
+                <i class="fas fa-sun"></i> <span id="themeText">Modo Claro</span>
+            </button>
+            <div class="live-badge">
+                <i class="fas fa-circle"></i> 
+                <span id="connectionStatus">DATOS JPL EN VIVO</span>
+            </div>
         </div>
     </div>
 
@@ -710,6 +799,7 @@
 
     // Inicializar
     async function init() {
+         initThemeToggle();
         await updateAll();
         await fetchSolarWeather();
         await fetchDSNStatus();
@@ -723,6 +813,43 @@
     }
     
     init();
+
+        // ============================================
+    // DARK / LIGHT MODE TOGGLE
+    // ============================================
+    
+    function initThemeToggle() {
+        const toggleBtn = document.getElementById('themeToggle');
+        const themeText = document.getElementById('themeText');
+        
+        // Cargar tema guardado en localStorage
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-theme');
+            if (themeText) themeText.innerHTML = 'Modo Oscuro';
+            if (toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-moon"></i> <span id="themeText">Modo Oscuro</span>';
+        } else {
+            // Tema oscuro por defecto
+            document.body.classList.remove('light-theme');
+            if (themeText) themeText.innerHTML = 'Modo Claro';
+            if (toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-sun"></i> <span id="themeText">Modo Claro</span>';
+        }
+        
+        // Evento del botón
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                const isLight = document.body.classList.toggle('light-theme');
+                const newTheme = isLight ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                
+                if (isLight) {
+                    toggleBtn.innerHTML = '<i class="fas fa-moon"></i> <span id="themeText">Modo Oscuro</span>';
+                } else {
+                    toggleBtn.innerHTML = '<i class="fas fa-sun"></i> <span id="themeText">Modo Claro</span>';
+                }
+            });
+        }
+    }
 </script>
 </body>
 </html>
