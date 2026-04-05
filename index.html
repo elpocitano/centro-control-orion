@@ -131,6 +131,7 @@
         </div>
     </div>
 
+    <!-- KPIs principales -->
     <div class="grid-2">
         <div class="card">
             <div class="card-header"><i class="fas fa-globe"></i> DISTANCIA A LA TIERRA</div>
@@ -156,11 +157,16 @@
         </div>
     </div>
 
-
-    <div class="grid-2">
+    <!-- Clima Solar + DSN + Fases (3 columnas) -->
+    <div class="grid-2" style="grid-template-columns: repeat(3, 1fr);">
         <div class="card">
             <div class="card-header"><i class="fas fa-sun"></i> CLIMA SOLAR · NOAA SWPC</div>
             <div id="solarWeather">Cargando datos solares...</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="fas fa-satellite-dish"></i> RED DSN · NASA</div>
+            <div id="dsnStatus">Cargando...</div>
         </div>
 
         <div class="card">
@@ -172,6 +178,7 @@
         </div>
     </div>
 
+    <!-- Trayectoria + Noticias (2 columnas) -->
     <div class="grid-2">
         <div class="card">
             <div class="card-header"><i class="fas fa-draw-polygon"></i> TRAYECTORIA · TIERRA → LUNA</div>
@@ -203,7 +210,6 @@
         <i class="fab fa-github"></i> Dashboard: elpocitano@gmail.com · Datos: NASA JPL Horizons · Clima: NOAA SWPC · Noticias: SpaceNews
         <br><small>Basado en el trabajo de Ryan Fox (artemis-ii-cli, MIT License)</small>
     </div>
-
 </div>
 
 <script>
@@ -463,6 +469,26 @@
         }
     } 
 
+    // DSN Status - Red de Espacio Profundo (datos fijos + estimación)
+    async function fetchDSNStatus() {
+        const dsnDiv = document.getElementById('dsnStatus');
+        if (!dsnDiv) return;
+        
+        // Datos fijos basados en la configuración real de NASA DSN
+        const dsnData = {
+            madrid: { antenas: 6, nombres: "DSS63(70m), DSS65(34m), DSS53-56(34m)" },
+            goldstone: { antenas: 4, nombres: "DSS14(70m), DSS24-26(34m)" },
+            canberra: { antenas: 4, nombres: "DSS43(70m), DSS34-36(34m)" }
+        };
+        
+        dsnDiv.innerHTML = `
+            <div class="solar-data"><i class="fas fa-satellite-dish"></i> <strong>Madrid (España):</strong> ${dsnData.madrid.antenas} antenas</div>
+            <div class="solar-data"><i class="fas fa-satellite-dish"></i> <strong>Goldstone (USA):</strong> ${dsnData.goldstone.antenas} antenas</div>
+            <div class="solar-data"><i class="fas fa-satellite-dish"></i> <strong>Canberra (Australia):</strong> ${dsnData.canberra.antenas} antenas</div>
+            <div class="solar-data" style="font-size: 0.7rem; color: #FFB800;">📍 Orion se comunica con estas estaciones</div>
+        `;
+    }
+
     // Noticias desde SpaceNews (filtradas por Artemis II)
     async function fetchNews() {
         const newsDiv = document.getElementById('newsFeed');
@@ -582,11 +608,13 @@
     async function init() {
         await updateAll();
         await fetchSolarWeather();
+        await fetchDSNStatus();
         await fetchNews();
         updateLocalTime();
         setInterval(updateLocalTime, 1000);
         setInterval(updateAll, 30000);
         setInterval(fetchSolarWeather, 300000);
+        setInterval(fetchDSNStatus, 60000);  // Actualiza DSN cada minuto
         setInterval(fetchNews, 600000);
     }
     
