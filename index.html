@@ -28,6 +28,11 @@
             border-bottom: 2px solid rgba(0,136,255,0.3);
             padding-bottom: 20px;
         }
+        .header-actions{
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
         .local-clock {
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
@@ -50,6 +55,30 @@
             padding: 8px 18px;
             border-radius: 40px;
             border-left: 3px solid #00FF88;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 40px;
+            box-sizing: border-box;
+        }
+        #themeToggle {
+            background: rgba(0,136,255,0.2);
+            border: 1px solid rgba(0,136,255,0.4);
+            border-radius: 40px;
+            padding: 8px 18px;
+            cursor: pointer;
+            color: #E8F0FF;
+            font-family: monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 40px;
+            box-sizing: border-box;
         }
         .grid-2 {
             display: grid;
@@ -119,7 +148,7 @@
             .grid-2 { grid-template-columns: 1fr; }
             .kpi-value { font-size: 1.5rem; }
         }
-                #dsnMap {
+        #dsnMap {
             height: 250px;
             width: 100%;
             border-radius: 16px;
@@ -217,13 +246,14 @@
 </head>
 <body>
 <div class="dashboard">
+    <!-- Encabezado de pagina -->
     <div class="header">
         <div class="title-section">
             <h1><i class="fas fa-space-shuttle"></i> CENTRO DE CONTROL ORION</h1>
             <p>Datos REALES · NASA JPL Horizons · Misión Artemis II</p>
         </div>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <button id="themeToggle" style="background: rgba(0,136,255,0.2); border: 1px solid rgba(0,136,255,0.4); border-radius: 40px; padding: 8px 16px; cursor: pointer; color: #E8F0FF; font-family: monospace; transition: all 0.3s ease;">
+        <div class="header-actions">
+            <button id="themeToggle">
                 <i class="fas fa-sun"></i> <span id="themeText">Modo Claro</span>
             </button>
             <div class="live-badge">
