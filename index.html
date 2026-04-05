@@ -7,6 +7,9 @@
     <title>Centro de Control Orion | Datos Reales NASA JPL</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <!-- Leaflet CSS y JS para el mapa DSN -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -116,6 +119,16 @@
             .grid-2 { grid-template-columns: 1fr; }
             .kpi-value { font-size: 1.5rem; }
         }
+                #dsnMap {
+            height: 250px;
+            width: 100%;
+            border-radius: 16px;
+            margin-top: 10px;
+            z-index: 1;
+        }
+        .leaflet-control-attribution {
+            font-size: 8px;
+        }
     </style>
 </head>
 <body>
@@ -167,6 +180,7 @@
         <div class="card">
             <div class="card-header"><i class="fas fa-satellite-dish"></i> RED DSN · NASA</div>
             <div id="dsnStatus">Cargando...</div>
+            <div id="dsnMap" style="height: 220px; width: 100%; margin-top: 10px; border-radius: 12px; overflow: hidden;"></div>
         </div>
 
         <div class="card">
@@ -469,8 +483,9 @@
         }
     } 
 
-    // DSN Status - Red de Espacio Profundo (datos fijos + estimación)
-    // DSN Status - Red de Espacio Profundo (mejorado)
+    // DSN Status - Red de Espacio Profundo + Mapa
+    let dsnMapInitialized = false;
+    
     async function fetchDSNStatus() {
         const dsnDiv = document.getElementById('dsnStatus');
         if (!dsnDiv) return;
@@ -493,6 +508,89 @@
                 🛰️ Orion se comunica vía Red de Espacio Profundo (DSN)
             </div>
         `;
+        
+        // Inicializar el mapa solo una vez
+        if (!dsnMapInitialized) {
+            initDSNMap();
+            dsnMapInitialized = true;
+        }
+    }
+    
+    // Inicializar mapa Leaflet con las 3 estaciones DSN
+    function initDSNMap() {
+        const mapContainer = document.getElementById('dsnMap');
+        if (!mapContainer) return;
+        
+        // Crear el mapa centrado aproximadamente en el Atlántico
+        const map = L.map('dsnMap').setView([20, -30], 2);
+        
+        // Capa de mapa oscuro (estilo espacio)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> | NASA DSN',
+            subdomains: 'abcd',
+            minZoom: 1,
+            maxZoom: 10
+        }).addTo(map);
+        
+        // Coordenadas de las estaciones DSN
+        const estaciones = [
+            { 
+                name: "Madrid", 
+                coords: [40.241, -4.248], 
+                antenna: "DSS63 (70m)",
+                country: "España",
+                url: "https://www.nasa.gov/dsn/madrid"
+            },
+            { 
+                name: "Goldstone", 
+                coords: [35.244, -116.889], 
+                antenna: "DSS14 (70m)",
+                country: "USA",
+                url: "https://www.nasa.gov/dsn/goldstone"
+            },
+            { 
+                name: "Canberra", 
+                coords: [-35.221, 148.981], 
+                antenna: "DSS43 (70m)",
+                country: "Australia",
+                url: "https://www.nasa.gov/dsn/canberra"
+            }
+        ];
+        
+        // Icono personalizado para las antenas
+        const customIcon = L.divIcon({
+            html: '<i class="fas fa-satellite-dish" style="font-size: 20px; color: #00FF88; text-shadow: 0 0 5px #00FF88;"></i>',
+            iconSize: [24, 24],
+            className: 'custom-dsn-icon'
+        });
+        
+        // Agregar marcadores
+        estaciones.forEach(e => {
+            const marker = L.marker(e.coords, { icon: customIcon }).addTo(map);
+            marker.bindPopup(`
+                <b>🛰️ ${e.name}</b><br>
+                📡 ${e.antenna}<br>
+                📍 ${e.country}<br>
+                <a href="${e.url}" target="_blank" style="color: #0088FF;">Más información →</a>
+            `);
+        });
+        
+        // Agregar círculos de alcance aproximado (radio simbólico)
+        estaciones.forEach(e => {
+            L.circle(e.coords, {
+                color: '#0088FF',
+                weight: 1,
+                opacity: 0.3,
+                fillColor: '#0088FF',
+                fillOpacity: 0.05,
+                radius: 2000000  // 2000 km de alcance simbólico
+            }).addTo(map);
+        });
+        
+        // Ajustar el mapa después de un pequeño retraso (para que se renderice bien)
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
     }
 
     // Noticias desde SpaceNews (filtradas por Artemis II)
