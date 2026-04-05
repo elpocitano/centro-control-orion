@@ -200,8 +200,8 @@
 
 <script>
     // ============================================================
-    // DATOS REALES DESDE JPL HORIZONS API
-    // NOTICIAS DESDE SPACENEWS (FILTRADAS POR ARTEMIS II)
+    // DATOS TOMADOS DE JPL HORIZONS API
+    // NOTICIAS DE SPACE NEWS (FILTRADAS POR ARTEMIS II)
     // ============================================================
 
     // Configuración
@@ -210,7 +210,7 @@
     const LAUNCH_DATE = new Date('2026-04-01T22:35:00Z');
     const MAX_DISTANCE = 432000; // km
 
-    // Eventos de la misión
+    // ETAPAS de la misión
     const MISSION_EVENTS = [
         { time: '2026-04-01T22:35:00Z', event: 'Lanzamiento', desc: 'Despegue del SLS desde LC-39B' },
         { time: '2026-04-02T23:49:00Z', event: 'Inyección Translunar', desc: 'Encendido hacia la Luna' },
@@ -219,7 +219,7 @@
         { time: '2026-04-11T00:17:00Z', event: 'Amerizaje', desc: 'Océano Pacífico' }
     ];
 
-    // Fases para el reloj circular
+    // Fases Del reloj circular
     const PHASES = [
         { name: 'PRE-LANZAMIENTO', start: 0, end: 0.02, color: '#6B8CBF' },
         { name: 'ASCENSO', start: 0.02, end: 0.08, color: '#FFB800' },
@@ -240,7 +240,7 @@
     let lastFetchTime = 0;
     let realDataAvailable = false;
 
-    // Obtener datos reales desde JPL Horizons
+    // Obtener datos de JPL Horizons
     async function fetchRealTelemetry() {
         const now = new Date();
         const dateStr = now.toISOString().split('T')[0];
@@ -258,7 +258,7 @@
 
         const fullUrl = `${HORIZONS_API}?${params}`;
         
-        // Lista de proxies CORS públicos (ordenados por confiabilidad)
+        // Lista de proxies CORS públicos, un quilombo lptm (ordenados por confiabilidad)
         const PROXIES = [
             { name: 'allorigins', url: 'https://api.allorigins.win/raw?url=' },
             { name: 'corsproxy', url: 'https://corsproxy.io/?' },
@@ -299,7 +299,7 @@
             }
         }
         
-        // Si todos los proxies fallan, usar respaldo
+        // Si todos los proxies fallan, usar respaldo (a ver si asi funcionan)
         realDataAvailable = false;
         document.getElementById('connectionStatus').innerHTML = 'DATOS BASADOS EN TRAYECTORIA OFICIAL';
         document.getElementById('connectionStatus').style.color = '#FFB800';
@@ -347,7 +347,7 @@
         return (now - LAUNCH_DATE) / (splashdown - LAUNCH_DATE);
     }
 
-    // Obtener fase actual
+    // Obtener etapa actual
     function getCurrentPhase(progress) {
         for (let i = PHASES.length - 1; i >= 0; i--) {
             if (progress >= PHASES[i].start) return PHASES[i];
@@ -355,7 +355,7 @@
         return PHASES[0];
     }
 
-    // Dibujar reloj de fases
+    // Dibujar reloj de etapas o fases
     function drawPhaseClock(progress) {
         const size = 200;
         const radius = 80;
@@ -402,7 +402,7 @@
         }
     }
 
-    // Clima solar
+    // Clima solar, ahora usamos NOAA
     async function fetchSolarWeather() {
         try {
             // Endpoint de NOAA con datos de viento solar
@@ -432,7 +432,7 @@
                 const partes = timeTag.split(' ');
                 if (partes.length >= 2) {
                     const fecha = partes[0];
-                    const hora = partes[1].split('.')[0]; // quitar milisegundos
+                    const hora = partes[1].split('.')[0]; // quitar milisegundos para no exigir la web al pedo
                     const [anio, mes, dia] = fecha.split('-');
                     fechaFormateada = `${dia}/${mes}/${anio} ${hora}`;
                 } else {
@@ -441,16 +441,16 @@
             }
             
             document.getElementById('solarWeather').innerHTML = `
-                <div class="solar-data">🌬️ <strong>Viento solar:</strong> ${velocidad} km/s</div>
-                <div class="solar-data">🌡️ <strong>Temperatura:</strong> ${temperatura} K</div>
-                <div class="solar-data">🧲 <strong>Densidad:</strong> ${densidad} p/cc</div>
-                <div class="solar-data">🕒 <strong>Actualizado:</strong> ${fechaFormateada} UTC</div>
+                <div class="solar-data">  <strong>Viento solar:</strong> ${velocidad} km/s</div>
+                <div class="solar-data">  <strong>Temperatura:</strong> ${temperatura} K</div>
+                <div class="solar-data">  <strong>Densidad:</strong> ${densidad} p/cc</div>
+                <div class="solar-data">  <strong>Actualizado:</strong> ${fechaFormateada} UTC</div>
             `;
         } catch (error) {
             console.error('Error fetching solar weather:', error);
             document.getElementById('solarWeather').innerHTML = `
-                <div class="solar-data">⚠️ Clima solar temporalmente no disponible</div>
-                <div class="solar-data">🔄 Actualización automática en 5 minutos</div>
+                <div class="solar-data">!! Clima solar temporalmente no disponible</div>
+                <div class="solar-data">-> Actualización automática en 5 minutos</div>
             `;
         }
     } 
@@ -466,7 +466,7 @@
             const data = await response.json();
             
             if (data.items) {
-                // Filtrar solo noticias relacionadas con Artemis II
+                // Filtrar solo noticias relacionadas con Artemis II, si no, salen muchas Militares
                 const artemisNews = data.items.filter(item => {
                     const title = item.title.toLowerCase();
                     return title.includes('artemis 2') || 
