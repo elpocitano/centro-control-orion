@@ -80,12 +80,28 @@
             height: 40px;
             box-sizing: border-box;
         }
+
         .grid-2 {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 25px;
             margin-bottom: 30px;
         }
+
+        /* Forzar 3 columnas solo en desktop para el panel DSN */
+        .grid-3-desktop {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .grid-3-desktop {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .card {
             background: rgba(10,15,42,0.7);
             backdrop-filter: blur(8px);
@@ -289,8 +305,8 @@
         </div>
     </div>
 
-    <!-- Clima Solar + DSN + Fases (3 columnas) -->
-    <div class="grid-2" style="grid-template-columns: repeat(3, 1fr);">
+    <!-- Clima Solar + DSN + Fases (3 columnas en desktop, 1 en móvil) -->
+    <div class="grid-3-desktop">
         <div class="card">
             <div class="card-header"><i class="fas fa-sun"></i> CLIMA SOLAR · NOAA SWPC</div>
             <div id="solarWeather">Cargando datos solares...</div>
