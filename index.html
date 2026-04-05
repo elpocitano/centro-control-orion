@@ -350,10 +350,12 @@
                 <text x="150" y="245" fill="white" font-size="12" text-anchor="middle">TIERRA</text>
                 <circle cx="650" cy="200" r="20" fill="#B0B0B0" stroke="#AAAAAA" stroke-width="2"/>
                 <text x="650" y="235" fill="white" font-size="12" text-anchor="middle">LUNA</text>
-                <path id="flightPath" d="M 180 200 Q 400 80 630 200" stroke="#00FF88" stroke-width="3" fill="none" stroke-dasharray="8 6"/>
+                <path id="flightPath" d="M 150 200 C 250 100, 500 100, 650 200 C 550 300, 300 280, 150 200" stroke="#00FF88" stroke-width="3" fill="none" stroke-dasharray="8 6"/>
                 <circle id="orionPosition" cx="180" cy="200" r="8" fill="#FFB800" stroke="white" stroke-width="2"/>
+                <circle id="orionGlow" cx="180" cy="200" r="14" fill="none" stroke="#FFB800" stroke-width="1" opacity="0.3"/>
             </svg>
             <div style="text-align: center; margin-top: 10px;">Posición actual de Orion en la trayectoria</div>
+            <div id="trajectoryProgress" style="text-align: center; font-size: 0.7rem; color: #00FF88; margin-top: 4px;"></div>
             <div style="text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(0,136,255,0.2);">
                 <div class="local-clock" style="display: inline-block;">
                     <i class="fas fa-clock"></i> Hora local: <span id="localTime">--:--:--</span>
@@ -413,72 +415,36 @@
     let realDataAvailable = false;
 
     // Obtener datos de JPL Horizons
+    // Cargar datos reales desde GitHub Actions
     async function fetchRealTelemetry() {
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        
-        const params = new URLSearchParams({
-            format: 'json',
-            COMMAND: `'${ORION_ID}'`,
-            EPHEM_TYPE: 'VECTORS',
-            CENTER: "'500@399'",
-            START_TIME: `'${dateStr}'`,
-            STOP_TIME: `'${dateStr}'`,
-            STEP_SIZE: "'1d'",
-            OUT_UNITS: "'KM-S'"
-        });
-
-        const fullUrl = `${HORIZONS_API}?${params}`;
-        
-        // Lista de proxies CORS públicos, un quilombo lptm (ordenados por confiabilidad)
-        const PROXIES = [
-            { name: 'allorigins', url: 'https://api.allorigins.win/raw?url=' },
-            { name: 'corsproxy', url: 'https://corsproxy.io/?' },
-            { name: 'cors-anywhere', url: 'https://cors-anywhere.herokuapp.com/' },
-            { name: 'proxy.cors', url: 'https://proxy.cors.sh/' },
-            { name: 'cors-bridge', url: 'https://corsbridge.onrender.com/' },
-            { name: 'thingproxy', url: 'https://thingproxy.freeboard.io/fetch/' }
-        ];
-        
-        for (let i = 0; i < PROXIES.length; i++) {
-            const proxy = PROXIES[i];
-            try {
-                document.getElementById('connectionStatus').innerHTML = `PROBANDO ${proxy.name}...`;
-                document.getElementById('connectionStatus').style.color = '#FFB800';
+        try {
+            // Intentar cargar el archivo generado por GitHub Actions
+            const response = await fetch('./api/data.json');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            
+            if (data.status === 'live' && data.distance_km) {
+                realDistance = data.distance_km;
+                realSpeed = data.velocity_kmh;
+                realLightTime = data.light_time_sec;
+                realDataAvailable = true;
+                lastFetchTime = Date.now();
                 
-                const response = await fetch(proxy.url + encodeURIComponent(fullUrl));
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                const data = await response.json();
-                if (data.result) {
-                    const rgMatch = data.result.match(/RG=\s*([\d.E+-]+)/i);
-                    const rrMatch = data.result.match(/RR=\s*([\d.E+-]+)/i);
-                    
-                    if (rgMatch && rrMatch) {
-                        realDistance = parseFloat(rgMatch[1]);
-                        realSpeed = parseFloat(rrMatch[1]) * 3600;
-                        realDataAvailable = true;
-                        lastFetchTime = Date.now();
-                        
-                        document.getElementById('connectionStatus').innerHTML = ` DATOS REALES (${proxy.name})`;
-                        document.getElementById('connectionStatus').style.color = '#00FF88';
-                        document.getElementById('sourceEarth').innerHTML = ` Fuente: JPL Horizons vía ${proxy.name}`;
-                        return true;
-                    }
-                }
-            } catch (e) {
-                console.warn(`Proxy ${proxy.name} falló:`, e);
+                document.getElementById('connectionStatus').innerHTML = 'DATOS REALES JPL';
+                document.getElementById('connectionStatus').style.color = '#00FF88';
+                document.getElementById('sourceEarth').innerHTML = '✅ Fuente: JPL Horizons (GitHub Actions)';
+                return true;
             }
+            throw new Error('Invalid data');
+        } catch (e) {
+            console.warn('Error loading local telemetry:', e);
+            realDataAvailable = false;
+            document.getElementById('connectionStatus').innerHTML = 'DATOS BASADOS EN TRAYECTORIA OFICIAL';
+            document.getElementById('connectionStatus').style.color = '#FFB800';
+            document.getElementById('sourceEarth').innerHTML = '⚠️ Fuente: Trayectoria oficial Artemis II (NASA)';
+            return false;
         }
-        
-        // Si todos los proxies fallan, usar respaldo (a ver si asi funcionan)
-        realDataAvailable = false;
-        document.getElementById('connectionStatus').innerHTML = 'DATOS BASADOS EN TRAYECTORIA OFICIAL';
-        document.getElementById('connectionStatus').style.color = '#FFB800';
-        document.getElementById('sourceEarth').innerHTML = 'Fuente: Trayectoria oficial Artemis II (NASA)';
-        return false;
-    } 
-
+    }
 
     // Valores de respaldo
     function getBackupValues(progress) {
@@ -557,20 +523,121 @@
         document.getElementById('phaseClock').innerHTML = svg;
     }
 
-    // Actualizar trayectoria
+    // Puntos de control para la trayectoria completa (ida + vuelta)
+    // Basado en la misión real Artemis II
+    const TRAJECTORY_POINTS = [
+        { progress: 0.00, x: 150, y: 200, desc: "Tierra - Inicio" },      // Tierra (salida)
+        { progress: 0.05, x: 180, y: 185, desc: "Ascenso inicial" },
+        { progress: 0.10, x: 210, y: 170, desc: "Órbita terrestre" },
+        { progress: 0.15, x: 245, y: 155, desc: "Inyección translunar" },
+        { progress: 0.20, x: 285, y: 140, desc: "Rumbo a la Luna" },
+        { progress: 0.25, x: 330, y: 125, desc: "Costa de salida" },
+        { progress: 0.30, x: 380, y: 115, desc: "Mitad del viaje" },
+        { progress: 0.35, x: 430, y: 108, desc: "Aproximación" },
+        { progress: 0.40, x: 480, y: 105, desc: "Cerca de la Luna" },
+        { progress: 0.45, x: 525, y: 115, desc: "Entrando en SOI lunar" },
+        { progress: 0.48, x: 555, y: 135, desc: "Acercamiento rápido" },
+        { progress: 0.50, x: 585, y: 160, desc: "Máximo acercamiento" },
+        { progress: 0.52, x: 615, y: 185, desc: "Sobrevolando Luna" },
+        { progress: 0.55, x: 650, y: 200, desc: "Luna - Closest approach" },  // Luna
+        { progress: 0.58, x: 625, y: 220, desc: "Detrás de la Luna" },
+        { progress: 0.60, x: 590, y: 245, desc: "Saliendo de SOI lunar" },
+        { progress: 0.65, x: 535, y: 275, desc: "Regreso iniciado" },
+        { progress: 0.70, x: 470, y: 295, desc: "Costa de retorno" },
+        { progress: 0.75, x: 405, y: 305, desc: "Mitad del regreso" },
+        { progress: 0.80, x: 340, y: 300, desc: "Acercándose a Tierra" },
+        { progress: 0.85, x: 280, y: 285, desc: "Reingreso atmosférico" },
+        { progress: 0.90, x: 225, y: 260, desc: "Frenado aerodinámico" },
+        { progress: 0.95, x: 180, y: 230, desc: "Despliegue de paracaídas" },
+        { progress: 1.00, x: 150, y: 200, desc: "Tierra - Amerizaje" }
+    ];
+
+    // Actualizar trayectoria realista con múltiples puntos de control
     function updateTrajectory(progress) {
-        const startX = 180, endX = 630;
-        const startY = 200, endY = 200;
-        const controlY = 80;
+        // progress = earthDist / (earthDist + moonDist)
+        // 0 = Tierra, 0.5 = Luna (máximo acercamiento), 1 = Regreso a Tierra
         const t = Math.min(1, Math.max(0, progress));
         
-        const cx = (1-t)*(1-t)*startX + 2*(1-t)*t*((startX+endX)/2) + t*t*endX;
-        const cy = (1-t)*(1-t)*startY + 2*(1-t)*t*controlY + t*t*endY;
+        // Encontrar los dos puntos que rodean el progreso actual
+        let p1 = TRAJECTORY_POINTS[0];
+        let p2 = TRAJECTORY_POINTS[TRAJECTORY_POINTS.length - 1];
         
+        for (let i = 0; i < TRAJECTORY_POINTS.length - 1; i++) {
+            const point = TRAJECTORY_POINTS[i];
+            const nextPoint = TRAJECTORY_POINTS[i + 1];
+            if (t >= point.progress && t <= nextPoint.progress) {
+                p1 = point;
+                p2 = nextPoint;
+                break;
+            }
+        }
+        
+        // Interpolación lineal suave entre los dos puntos
+        const segmentProgress = (t - p1.progress) / (p2.progress - p1.progress);
+        // Usar easing suave para el movimiento
+        const easeProgress = segmentProgress < 0.5 
+            ? 2 * segmentProgress * segmentProgress 
+            : 1 - Math.pow(-2 * segmentProgress + 2, 2) / 2;
+        
+        const cx = p1.x + (p2.x - p1.x) * easeProgress;
+        const cy = p1.y + (p2.y - p1.y) * easeProgress;
+        
+        // Actualizar posición del punto Orion
         const orion = document.getElementById('orionPosition');
         if (orion) {
             orion.setAttribute('cx', cx);
             orion.setAttribute('cy', cy);
+        }
+        
+        // Actualizar halo de brillo
+        const glow = document.getElementById('orionGlow');
+        if (glow) {
+            glow.setAttribute('cx', cx);
+            glow.setAttribute('cy', cy);
+        }
+        
+        // Determinar fase actual basada en el progreso
+        let faseTexto = '';
+        let etapa = '';
+        
+        if (t <= 0.15) {
+            etapa = '🚀 LANZAMIENTO';
+            faseTexto = 'Despegue y ascenso';
+        } else if (t <= 0.25) {
+            etapa = '🌍 ÓRBITA TERRESTRE';
+            faseTexto = 'Órbita de estacionamiento';
+        } else if (t <= 0.48) {
+            etapa = '🌕 RUMBO A LA LUNA';
+            faseTexto = 'Costa translunar';
+        } else if (t <= 0.55) {
+            etapa = '🌙 SOBREVUELO LUNAR';
+            faseTexto = 'Máximo acercamiento (9,650 km)';
+        } else if (t <= 0.75) {
+            etapa = '🏠 REGRESO A LA TIERRA';
+            faseTexto = 'Costa de retorno';
+        } else if (t <= 0.95) {
+            etapa = '🔥 REINGRESO';
+            faseTexto = 'Entrada atmosférica';
+        } else {
+            etapa = '✅ AMERIZAJE';
+            faseTexto = 'Finalización de la misión';
+        }
+        
+        // Actualizar texto de progreso
+        const progressPercent = Math.round(t * 100);
+        const progressText = document.getElementById('trajectoryProgress');
+        if (progressText) {
+            if (t < 0.98) {
+                progressText.innerHTML = `${etapa} · ${progressPercent}% del viaje completado`;
+            } else {
+                progressText.innerHTML = `${etapa} · Misión completada`;
+            }
+        }
+        
+        // Actualizar tooltip con fase detallada (opcional)
+        const phaseDetail = document.getElementById('phaseDetail');
+        if (phaseDetail) {
+            phaseDetail.innerHTML = faseTexto;
         }
     }
 
@@ -833,6 +900,9 @@
         
         const moonDist = calculateMoonDistance(earthDist);
         const delaySec = lightTime.toFixed(3);
+        // Calcular progreso real basado en distancias
+        const totalDist = earthDist + moonDist;
+        const realProgress = totalDist > 0 ? earthDist / totalDist : 0;
         
         document.getElementById('distanceEarth').innerHTML = Math.round(earthDist).toLocaleString('es-419') + ' km';
         document.getElementById('distanceMoon').innerHTML = Math.round(moonDist).toLocaleString('es-419') + ' km';
@@ -849,7 +919,7 @@
         document.getElementById('nextEvent').innerHTML = next ? `Próximo: ${next.event}` : 'Misión completada';
         
         drawPhaseClock(progress);
-        updateTrajectory(progress);
+        updateTrajectory(realProgress);
     }
 
     // Tormentas geomagnéticas desde NASA DONKI
