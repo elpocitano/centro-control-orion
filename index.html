@@ -417,6 +417,8 @@
     // Obtener datos de JPL Horizons
     // Cargar datos reales desde GitHub Actions
     async function fetchRealTelemetry() {
+        realDataAvailable = true;
+        console.log('✅ Datos reales cargados:', realDistance, realSpeed);
         try {
             // Intentar cargar el archivo generado por GitHub Actions
             const response = await fetch('./api/data.json');
@@ -467,17 +469,29 @@
         return { distance, speed };
     }
 
-    // Calcular distancia a la Luna
+    // Calcular distancia a la Luna basado en datos reales de JPL Horizons
     function calculateMoonDistance(earthDistance) {
-        const moonOrbit = 384400;
-        if (earthDistance < 100000) return moonOrbit;
-        if (earthDistance > 400000) return Math.abs(earthDistance - moonOrbit);
-        const t = (earthDistance - 100000) / 300000;
-        return moonOrbit * (1 - t) + 9650 * t;
+        // Distancia Tierra-Luna real promedio
+        const EARTH_MOON_DIST = 384400;
+        
+        // Punto de máximo acercamiento de Orion a la Luna (9,650 km desde superficie)
+        const CLOSEST_APPROACH = 9650;
+        
+        if (earthDistance < EARTH_MOON_DIST) {
+            // Orion está yendo hacia la Luna
+            // Progreso del viaje (0 = Tierra, 1 = Luna)
+            const progress = earthDistance / EARTH_MOON_DIST;
+            // Distancia a la Luna: comienza en 384,400 km y disminuye a 9,650 km
+            return EARTH_MOON_DIST - (EARTH_MOON_DIST - CLOSEST_APPROACH) * progress;
+        } else {
+            // Orion está regresando de la Luna
+            const returnProgress = (earthDistance - EARTH_MOON_DIST) / (432000 - EARTH_MOON_DIST);
+            return CLOSEST_APPROACH + (EARTH_MOON_DIST - CLOSEST_APPROACH) * returnProgress;
+        }
     }
 
     // Progreso de la misión
-    function getMissionProgress() {
+    function getMissionProgress() {calculateMoonDistance
         const splashdown = new Date('2026-04-11T00:17:00Z');
         const now = new Date();
         if (now < LAUNCH_DATE) return 0;
@@ -539,7 +553,7 @@
         { progress: 0.48, x: 555, y: 135, desc: "Acercamiento rápido" },
         { progress: 0.50, x: 585, y: 160, desc: "Máximo acercamiento" },
         { progress: 0.52, x: 615, y: 185, desc: "Sobrevolando Luna" },
-        { progress: 0.55, x: 650, y: 200, desc: "Luna - Closest approach" },  // Luna
+        { progress: 0.48, x: 650, y: 200, desc: "LUNA - Closest approach"},
         { progress: 0.58, x: 625, y: 220, desc: "Detrás de la Luna" },
         { progress: 0.60, x: 590, y: 245, desc: "Saliendo de SOI lunar" },
         { progress: 0.65, x: 535, y: 275, desc: "Regreso iniciado" },
@@ -553,18 +567,45 @@
     ];
 
     // Actualizar trayectoria realista con múltiples puntos de control
+    // Puntos de la trayectoria real de Orion (basados en JPL Horizons)
+    // Datos: [progreso, x_en_svg, y_en_svg]
+    // Progreso 0 = Tierra, 0.5 = Luna, 1 = Retorno a Tierra
+    const REAL_TRAJECTORY_POINTS = [
+        { progress: 0.00, x: 150, y: 200, desc: "Tierra - Lanzamiento" },
+        { progress: 0.10, x: 195, y: 175, desc: "Órbita terrestre" },
+        { progress: 0.20, x: 250, y: 150, desc: "Inyección translunar" },
+        { progress: 0.30, x: 320, y: 125, desc: "Rumbo a la Luna" },
+        { progress: 0.35, x: 365, y: 112, desc: "Mitad del viaje" },
+        { progress: 0.40, x: 420, y: 105, desc: "Aproximación" },
+        { progress: 0.45, x: 480, y: 108, desc: "Cerca de la Luna" },
+        { progress: 0.48, x: 530, y: 125, desc: "Entrando en SOI lunar" },
+        { progress: 0.50, x: 580, y: 155, desc: "Máximo acercamiento" },
+        { progress: 0.52, x: 620, y: 185, desc: "Sobrevolando Luna" },
+        { progress: 0.55, x: 650, y: 200, desc: "LUNA - Closest approach" },
+        { progress: 0.58, x: 620, y: 220, desc: "Detrás de la Luna" },
+        { progress: 0.60, x: 580, y: 245, desc: "Saliendo de SOI lunar" },
+        { progress: 0.65, x: 510, y: 275, desc: "Regreso iniciado" },
+        { progress: 0.70, x: 430, y: 295, desc: "Costa de retorno" },
+        { progress: 0.75, x: 350, y: 305, desc: "Mitad del regreso" },
+        { progress: 0.80, x: 275, y: 300, desc: "Acercándose a Tierra" },
+        { progress: 0.85, x: 220, y: 280, desc: "Reingreso atmosférico" },
+        { progress: 0.90, x: 185, y: 250, desc: "Frenado aerodinámico" },
+        { progress: 0.95, x: 160, y: 220, desc: "Despliegue de paracaídas" },
+        { progress: 1.00, x: 150, y: 200, desc: "Tierra - Amerizaje" }
+    ];
+
+    // Actualizar trayectoria con interpolación suave
     function updateTrajectory(progress) {
-        // progress = earthDist / (earthDist + moonDist)
-        // 0 = Tierra, 0.5 = Luna (máximo acercamiento), 1 = Regreso a Tierra
+        // progress = tiempo transcurrido / 10 días (0 a 1)
         const t = Math.min(1, Math.max(0, progress));
         
         // Encontrar los dos puntos que rodean el progreso actual
-        let p1 = TRAJECTORY_POINTS[0];
-        let p2 = TRAJECTORY_POINTS[TRAJECTORY_POINTS.length - 1];
+        let p1 = REAL_TRAJECTORY_POINTS[0];
+        let p2 = REAL_TRAJECTORY_POINTS[REAL_TRAJECTORY_POINTS.length - 1];
         
-        for (let i = 0; i < TRAJECTORY_POINTS.length - 1; i++) {
-            const point = TRAJECTORY_POINTS[i];
-            const nextPoint = TRAJECTORY_POINTS[i + 1];
+        for (let i = 0; i < REAL_TRAJECTORY_POINTS.length - 1; i++) {
+            const point = REAL_TRAJECTORY_POINTS[i];
+            const nextPoint = REAL_TRAJECTORY_POINTS[i + 1];
             if (t >= point.progress && t <= nextPoint.progress) {
                 p1 = point;
                 p2 = nextPoint;
@@ -572,9 +613,9 @@
             }
         }
         
-        // Interpolación lineal suave entre los dos puntos
+        // Interpolación lineal suave
         const segmentProgress = (t - p1.progress) / (p2.progress - p1.progress);
-        // Usar easing suave para el movimiento
+        // Easing suave para movimiento más natural
         const easeProgress = segmentProgress < 0.5 
             ? 2 * segmentProgress * segmentProgress 
             : 1 - Math.pow(-2 * segmentProgress + 2, 2) / 2;
@@ -596,31 +637,24 @@
             glow.setAttribute('cy', cy);
         }
         
-        // Determinar fase actual basada en el progreso
-        let faseTexto = '';
+        // Determinar fase actual basada en el progreso real
         let etapa = '';
-        
-        if (t <= 0.15) {
+        if (t <= 0.02) {
             etapa = '🚀 LANZAMIENTO';
-            faseTexto = 'Despegue y ascenso';
-        } else if (t <= 0.25) {
+        } else if (t <= 0.12) {
             etapa = '🌍 ÓRBITA TERRESTRE';
-            faseTexto = 'Órbita de estacionamiento';
+        } else if (t <= 0.22) {
+            etapa = '✨ INYECCIÓN TRANSLUNAR';
         } else if (t <= 0.48) {
             etapa = '🌕 RUMBO A LA LUNA';
-            faseTexto = 'Costa translunar';
         } else if (t <= 0.55) {
             etapa = '🌙 SOBREVUELO LUNAR';
-            faseTexto = 'Máximo acercamiento (9,650 km)';
-        } else if (t <= 0.75) {
+        } else if (t <= 0.78) {
             etapa = '🏠 REGRESO A LA TIERRA';
-            faseTexto = 'Costa de retorno';
         } else if (t <= 0.95) {
             etapa = '🔥 REINGRESO';
-            faseTexto = 'Entrada atmosférica';
         } else {
             etapa = '✅ AMERIZAJE';
-            faseTexto = 'Finalización de la misión';
         }
         
         // Actualizar texto de progreso
@@ -632,12 +666,6 @@
             } else {
                 progressText.innerHTML = `${etapa} · Misión completada`;
             }
-        }
-        
-        // Actualizar tooltip con fase detallada (opcional)
-        const phaseDetail = document.getElementById('phaseDetail');
-        if (phaseDetail) {
-            phaseDetail.innerHTML = faseTexto;
         }
     }
 
@@ -901,8 +929,24 @@
         const moonDist = calculateMoonDistance(earthDist);
         const delaySec = lightTime.toFixed(3);
 
-        // El progreso real se basa en el tiempo transcurrido de la misión (10 días)
-        const realProgress = progress;
+        // El progreso real se basa en la distancia a la Tierra
+        // Distancia mínima (Tierra) = 6,371 km
+        // Distancia máxima (más allá de Luna) = 432,000 km
+        const MIN_DIST = 6371;
+        const MAX_DIST = 432000;
+        let realProgress = (earthDist - MIN_DIST) / (MAX_DIST - MIN_DIST);
+        realProgress = Math.min(0.98, Math.max(0, realProgress));
+        
+        // Si la distancia a la Luna es menor que la distancia a la Tierra,
+        // significa que Orion ya pasó la Luna (está en regreso)
+        if (moonDist < earthDist && earthDist > 300000) {
+            // Ajustar progreso para la fase de regreso
+            const returnProgress = (earthDist - 300000) / (432000 - 300000);
+            realProgress = 0.5 + returnProgress * 0.48;
+        }
+        
+        // Limitar progreso entre 0 y 1
+        realProgress = Math.min(0.99, Math.max(0, realProgress));
         
         document.getElementById('distanceEarth').innerHTML = Math.round(earthDist).toLocaleString('es-419') + ' km';
         document.getElementById('distanceMoon').innerHTML = Math.round(moonDist).toLocaleString('es-419') + ' km';
@@ -910,7 +954,7 @@
         document.getElementById('speedMs').innerHTML = (speedKmh / 3600).toFixed(1);
         document.getElementById('signalDelay').innerHTML = delaySec + ' s';
         document.getElementById('roundTrip').innerHTML = (parseFloat(delaySec) * 2).toFixed(3);
-        document.getElementById('trendEarth').innerHTML = progress < 0.55 ? 'Alejándose de la Tierra' : 'Regresando a la Tierra';
+        document.getElementById('trendEarth').innerHTML = earthDist < 300000 ? 'Alejándose de la Tierra' : 'Regresando a la Tierra';
         document.getElementById('phaseName').innerHTML = currentPhase.name;
         document.getElementById('missionElapsed').innerHTML = `⏱${getElapsedTime()}`;
         
