@@ -131,17 +131,14 @@
     </div>
 </div>
 
-<script>
-    // ============================================================
+<script type="module">
+    import { HORIZONS_API, ORION_ID, LAUNCH_DATE, MAX_DISTANCE } from './js/config.js';
+
+
+   // ============================================================
     // DATOS TOMADOS DE JPL HORIZONS API
     // NOTICIAS DE SPACE NEWS (FILTRADAS POR ARTEMIS II)
     // ============================================================
-
-    // Configuración
-    const HORIZONS_API = 'https://ssd.jpl.nasa.gov/api/horizons.api';
-    const ORION_ID = '-1024';
-    const LAUNCH_DATE = new Date('2026-04-01T22:35:00Z');
-    const MAX_DISTANCE = 432000; // km
 
     // ETAPAS de la misión
     const MISSION_EVENTS = [
