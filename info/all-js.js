@@ -1,150 +1,16 @@
-<!DOCTYPE html>
-<html lang="es-419">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="author" content="elpocitano@gmail.com">
-    <title>Centro de Control Orion | Datos Reales NASA JPL</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-        <!-- Leaflet CSS y JS para el mapa DSN -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <!-- Estilos -->
-    <link rel="stylesheet" href="./css/base.css"/>
-</head>
-<body>
-<div class="dashboard">
-    <!-- Encabezado de pagina -->
-    <div class="header">
-        <div class="title-section">
-            <h1><i class="fas fa-space-shuttle"></i> CENTRO DE CONTROL ORION</h1>
-            <p>Datos REALES · NASA JPL Horizons · Misión Artemis II</p>
-        </div>
-        <div class="header-actions">
-            <button id="themeToggle">
-                <i class="fas fa-sun"></i> <span id="themeText">Modo Claro</span>
-            </button>
-            <div class="live-badge">
-                <i class="fas fa-circle"></i> 
-                <span id="connectionStatus">DATOS JPL EN VIVO</span>
-            </div>
-        </div>
-    </div>
+    <!-- Codigo Javascript para separar
 
-    <!-- KPIs principales -->
-    <div class="grid-2">
-        <div class="card">
-            <div class="card-header"><i class="fas fa-globe"></i> DISTANCIA A LA TIERRA</div>
-            <div class="kpi-value" id="distanceEarth">--</div>
-            <div class="trend" id="trendEarth"></div>
-            <div class="data-source" id="sourceEarth">Fuente: JPL Horizons</div>
-        </div>
-        <div class="card">
-            <div class="card-header"><i class="fas fa-moon"></i> DISTANCIA A LA LUNA</div>
-            <div class="kpi-value" id="distanceMoon">--</div>
-            <div class="data-source" id="sourceMoon">Estimación científica</div>
-        </div>
-        <div class="card">
-            <div class="card-header"><i class="fas fa-tachometer-alt"></i> VELOCIDAD RADIAL</div>
-            <div class="kpi-value" id="velocity">--</div>
-            <div>⚡ <span id="speedMs">--</span> km/s</div>
-            <div class="data-source">Velocidad respecto a la Tierra</div>
-        </div>
-        <div class="card">
-            <div class="card-header"><i class="fas fa-satellite-dish"></i> RETARDO DE SEÑAL</div>
-            <div class="kpi-value" id="signalDelay">--</div>
-            <div>Ida y vuelta: <span id="roundTrip">--</span> s</div>
-        </div>
-    </div>
-
-    <!-- GRILLA DE CARDS CLIMA SOLAR, DSN Y FASES (3 columnas en desktop, 1 en móvil) -->
-    <div class="grid-3-desktop">
-        <!-- CARD CLIMA SOLAR -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-sun"></i> CLIMA SOLAR · NOAA SWPC</div>
-            <div id="solarWeather">Cargando datos solares...</div>
-        </div>
-
-        <!-- CARD RED DSN NASA -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-satellite-dish"></i> RED DSN · NASA</div>
-            <div id="dsnStatus">Cargando...</div>
-            <div id="dsnMap" style="height: 220px; width: 100%; margin-top: 10px; border-radius: 12px; overflow: hidden;"></div>
-        </div>
-
-        <!-- CARD ETAPAS O FASES DE LA MISION -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-chart-pie"></i> FASES DE LA MISIÓN</div>
-            <div class="phase-clock" id="phaseClock"></div>
-            <div id="phaseName" style="text-align: center; font-weight: bold; margin-top: 10px;">--</div>
-            <div id="missionElapsed" style="text-align: center; font-size: 0.8rem; margin-top: 5px;"></div>
-            <div id="nextEvent" style="text-align: center; font-size: 0.7rem; color: #FFB800; margin-top: 5px;"></div>
-            <!-- Referencias sobre las fases -->
-            <div class="phase-container" id="phaseContainer"></div>
-        </div>
-    </div>
-
-    <!-- GRILLA DE CARDS DE CLIMA Y NOTICIAS -->
-    <div class="grid-2">
-        <div class="card">
-            <div class="card-header"><i class="fas fa-meteor"></i> TORMENTAS GEOMAGNÉTICAS · NASA DONKI</div>
-            <div id="geomagneticStorms">Cargando datos...</div>
-        </div>
-
-        <div class="card">
-            <div class="card-header"><i class="fas fa-newspaper"></i> NOTICIAS · ARTEMIS II</div>
-            <div id="newsFeed">Cargando noticias...</div>
-        </div>
-    </div> 
-
-
-    <!-- GRILLA DE CARDS de Trayectoria + Noticias (2 columnas) -->
-    <div class="grid-2">
-        <div class="card">
-            <div class="card-header"><i class="fas fa-draw-polygon"></i> TRAYECTORIA · TIERRA → LUNA</div>
-            <svg id="trajectorySvg" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
-                <rect width="800" height="400" fill="#0A0F2A" rx="20"/>
-                <circle cx="150" cy="200" r="30" fill="#2E86AB" stroke="#0088FF" stroke-width="2"/>
-                <text x="150" y="245" fill="white" font-size="12" text-anchor="middle">TIERRA</text>
-                <circle cx="650" cy="200" r="20" fill="#B0B0B0" stroke="#AAAAAA" stroke-width="2"/>
-                <text x="650" y="235" fill="white" font-size="12" text-anchor="middle">LUNA</text>
-                <path id="flightPath" d="M 150 200 C 250 100, 500 100, 650 200 C 550 300, 300 280, 150 200" stroke="#00FF88" stroke-width="3" fill="none" stroke-dasharray="8 6"/>
-                <circle id="orionPosition" cx="180" cy="200" r="8" fill="#FFB800" stroke="white" stroke-width="2"/>
-                <circle id="orionGlow" cx="180" cy="200" r="14" fill="none" stroke="#FFB800" stroke-width="1" opacity="0.3"/>
-            </svg>
-            <div style="text-align: center; margin-top: 10px;">Posición actual de Orion en la trayectoria</div>
-            <div id="trajectoryProgress" style="text-align: center; font-size: 0.7rem; color: #00FF88; margin-top: 4px;"></div>
-            <div style="text-align: center; margin-top: 12px; padding-top: 8px; border-top: 1px solid rgba(0,136,255,0.2);">
-                <div class="local-clock" style="display: inline-block;">
-                    <i class="fas fa-clock"></i> Hora local: <span id="localTime">--:--:--</span>
-                    <span id="timezone"></span>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="footer">
-        <i class="fab fa-github"></i> Dashboard: elpocitano@gmail.com · Datos: NASA JPL Horizons · Clima: NOAA SWPC · Noticias: SpaceNews
-        <br><small>Basado en el trabajo de Ryan Fox (artemis-ii-cli, MIT License)</small>
-    </div>
-</div>
-
-<script type="module">
-    import { HORIZONS_API, ORION_ID, LAUNCH_DATE, MAX_DISTANCE, NASA_API_KEY } from './js/config.js';
-
-    import { fetchRealTelemetry, getBackupValues, calculateMoonDistance, 
-             realDistance, realSpeed, realLightTime, lastFetchTime, realDataAvailable } 
-            from './js/data/telemetry.js';
-    
-    import { fetchGeomagneticStorms, fetchSolarWeather } from './js/data/solar.js';
-
-    
-   // ============================================================
+<script>
+    // ============================================================
     // DATOS TOMADOS DE JPL HORIZONS API
     // NOTICIAS DE SPACE NEWS (FILTRADAS POR ARTEMIS II)
     // ============================================================
+
+    // Configuración
+    const HORIZONS_API = 'https://ssd.jpl.nasa.gov/api/horizons.api';
+    const ORION_ID = '-1024';
+    const LAUNCH_DATE = new Date('2026-04-01T22:35:00Z');
+    const MAX_DISTANCE = 432000; // km
 
     // ETAPAS de la misión
     const MISSION_EVENTS = [
@@ -168,6 +34,89 @@
         { name: 'REINGRESO', start: 0.85, end: 0.95, color: '#FF6600' },
         { name: 'AMERIZAJE', start: 0.95, end: 1.0, color: '#00FF88' }
     ];
+
+    // Cache de datos reales
+    let realDistance = null;
+    let realSpeed = null;
+    let realLightTime = null;
+    let lastFetchTime = 0;
+    let realDataAvailable = false;
+
+    // Obtener datos de JPL Horizons
+    // Cargar datos reales desde GitHub Actions
+    async function fetchRealTelemetry() {
+        realDataAvailable = true;
+        console.log('✅ Datos reales cargados:', realDistance, realSpeed);
+        try {
+            // Intentar cargar el archivo generado por GitHub Actions
+            const response = await fetch('./api/data.json');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            
+            if (data.status === 'live' && data.distance_km) {
+                realDistance = data.distance_km;
+                realSpeed = data.velocity_kmh;
+                realLightTime = data.light_time_sec;
+                realDataAvailable = true;
+                lastFetchTime = Date.now();
+                
+                document.getElementById('connectionStatus').innerHTML = 'DATOS REALES JPL';
+                document.getElementById('connectionStatus').style.color = '#00FF88';
+                document.getElementById('sourceEarth').innerHTML = '✅ Fuente: JPL Horizons (GitHub Actions)';
+                return true;
+            }
+            throw new Error('Invalid data');
+        } catch (e) {
+            console.warn('Error loading local telemetry:', e);
+            realDataAvailable = false;
+            document.getElementById('connectionStatus').innerHTML = 'DATOS BASADOS EN TRAYECTORIA OFICIAL';
+            document.getElementById('connectionStatus').style.color = '#FFB800';
+            document.getElementById('sourceEarth').innerHTML = '⚠️ Fuente: Trayectoria oficial Artemis II (NASA)';
+            return false;
+        }
+    }
+
+    // Valores de respaldo
+    function getBackupValues(progress) {
+        let distance, speed;
+        if (progress < 0.15) {
+            distance = 6371 + (progress / 0.15) * 1000;
+            speed = 28000 * (progress / 0.15);
+        } else if (progress < 0.55) {
+            const t = (progress - 0.15) / 0.4;
+            distance = 7371 + t * (MAX_DISTANCE - 7371);
+            speed = 38000 * (1 - t * 0.3);
+        } else if (progress < 0.65) {
+            distance = MAX_DISTANCE;
+            speed = 8000;
+        } else {
+            const t = (progress - 0.65) / 0.35;
+            distance = MAX_DISTANCE * (1 - t) + 6371 * t;
+            speed = 8000 + t * 30000;
+        }
+        return { distance, speed };
+    }
+
+    // Calcular distancia a la Luna basado en datos reales de JPL Horizons
+    function calculateMoonDistance(earthDistance) {
+        // Distancia Tierra-Luna real promedio
+        const EARTH_MOON_DIST = 384400;
+        
+        // Punto de máximo acercamiento de Orion a la Luna (9,650 km desde superficie)
+        const CLOSEST_APPROACH = 9650;
+        
+        if (earthDistance < EARTH_MOON_DIST) {
+            // Orion está yendo hacia la Luna
+            // Progreso del viaje (0 = Tierra, 1 = Luna)
+            const progress = earthDistance / EARTH_MOON_DIST;
+            // Distancia a la Luna: comienza en 384,400 km y disminuye a 9,650 km
+            return EARTH_MOON_DIST - (EARTH_MOON_DIST - CLOSEST_APPROACH) * progress;
+        } else {
+            // Orion está regresando de la Luna
+            const returnProgress = (earthDistance - EARTH_MOON_DIST) / (432000 - EARTH_MOON_DIST);
+            return CLOSEST_APPROACH + (EARTH_MOON_DIST - CLOSEST_APPROACH) * returnProgress;
+        }
+    }
 
     // Progreso de la misión
     function getMissionProgress() {calculateMoonDistance
@@ -384,6 +333,59 @@
             }
         }
     }
+
+    // Clima solar, ahora usamos NOAA
+    async function fetchSolarWeather() {
+        try {
+            // Endpoint de NOAA con datos de viento solar
+            const response = await fetch('https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            if (!data || data.length < 2) throw new Error('Datos insuficientes');
+            
+            // La última fila son los datos más recientes (excluyendo el header)
+            const latest = data[data.length - 1];
+            
+            // Índices CORRECTOS según el JSON real:
+            // [0] = time_tag (fecha y hora)
+            // [1] = density (densidad)
+            // [2] = speed (velocidad)
+            // [3] = temperature (temperatura)
+            const timeTag = latest[0] || 'N/A';
+            const densidad = latest[1] || 'N/A';
+            const velocidad = latest[2] || 'N/A';
+            const temperatura = latest[3] ? parseFloat(latest[3]).toLocaleString() : 'N/A';
+            
+            // Formatear fecha y hora (el formato ya viene como "YYYY-MM-DD HH:MM:SS.000")
+            let fechaFormateada = 'No disponible';
+            if (timeTag !== 'N/A') {
+                // Separar fecha y hora
+                const partes = timeTag.split(' ');
+                if (partes.length >= 2) {
+                    const fecha = partes[0];
+                    const hora = partes[1].split('.')[0]; // quitar milisegundos para no exigir la web al pedo
+                    const [anio, mes, dia] = fecha.split('-');
+                    fechaFormateada = `${dia}/${mes}/${anio} ${hora}`;
+                } else {
+                    fechaFormateada = timeTag;
+                }
+            }
+            
+            document.getElementById('solarWeather').innerHTML = `
+                <div class="solar-data">  <strong>Viento solar:</strong> ${velocidad} km/s</div>
+                <div class="solar-data">  <strong>Temperatura:</strong> ${temperatura} K</div>
+                <div class="solar-data">  <strong>Densidad:</strong> ${densidad} p/cc</div>
+                <div class="solar-data">  <strong>Actualizado:</strong> ${fechaFormateada} UTC</div>
+            `;
+        } catch (error) {
+            console.error('Error fetching solar weather:', error);
+            document.getElementById('solarWeather').innerHTML = `
+                <div class="solar-data">!! Clima solar temporalmente no disponible</div>
+                <div class="solar-data">-> Actualización automática en 5 minutos</div>
+            `;
+        }
+    } 
 
     // DSN Status - Red de Espacio Profundo + Mapa
     let dsnMapInitialized = false;
@@ -628,7 +630,70 @@
         drawPhaseClock(progress);
         updatePhaseIndicators(progress);
         updateTrajectory(realProgress);
-    } 
+    }
+
+    // Tormentas geomagnéticas desde NASA DONKI
+    async function fetchGeomagneticStorms() {
+        const stormsDiv = document.getElementById('geomagneticStorms');
+        stormsDiv.innerHTML = 'Cargando datos...';
+        
+        try {
+            // Calcular fechas: últimos 30 días hasta hoy
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            
+            const formatDate = (d) => d.toISOString().split('T')[0];
+            
+            const url = `https://api.nasa.gov/DONKI/GST?startDate=${formatDate(startDate)}&endDate=${formatDate(endDate)}&api_key=DEMO_KEY`;
+            const response = await fetch(url);
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            
+            if (!data || data.length === 0) {
+                stormsDiv.innerHTML = 'No se detectaron tormentas geomagnéticas en los últimos 30 días.';
+                return;
+            }
+            
+            // Obtener la tormenta más reciente
+            const latestStorm = data[data.length - 1];
+            
+            // Encontrar el Kp máximo de esta tormenta
+            let maxKp = 0;
+            if (latestStorm.allKpIndex) {
+                for (const kp of latestStorm.allKpIndex) {
+                    if (kp.kpIndex > maxKp) maxKp = kp.kpIndex;
+                }
+            }
+            
+            // Determinar nivel de tormenta (G-scale)
+            let gLevel = '';
+            let gColor = '#00FF88';
+            if (maxKp >= 9) { gLevel = 'G5 (Extrema)'; gColor = '#FF3366'; }
+            else if (maxKp >= 8) { gLevel = 'G4 (Severa)'; gColor = '#FF6600'; }
+            else if (maxKp >= 7) { gLevel = 'G3 (Fuerte)'; gColor = '#FFB800'; }
+            else if (maxKp >= 6) { gLevel = 'G2 (Moderada)'; gColor = '#FFB800'; }
+            else if (maxKp >= 5) { gLevel = 'G1 (Menor)'; gColor = '#FFB800'; }
+            else { gLevel = 'Sin tormenta'; gColor = '#00FF88'; }
+            
+            // Formatear fecha
+            const stormDate = new Date(latestStorm.startTime);
+            const fechaFormateada = stormDate.toLocaleString('es-419', { hour12: false });
+            
+            stormsDiv.innerHTML = `
+                <div class="solar-data"><strong>Última tormenta:</strong> ${fechaFormateada}</div>
+                <div class="solar-data"><strong>Kp máximo:</strong> ${maxKp.toFixed(2)}</div>
+                <div class="solar-data"><strong>Nivel:</strong> <span style="color: ${gColor};">${gLevel}</span></div>
+                <div class="solar-data"><strong>Más información:</strong> <a href="${latestStorm.link}" target="_blank" style="color: #0088FF;">Ver en DONKI →</a></div>
+            `;
+            
+        } catch (error) {
+            console.error('Error fetching geomagnetic storms:', error);
+            stormsDiv.innerHTML = '⚠️ Datos de tormentas no disponibles';
+        }
+    }
 
         // ============================================
     // DARK / LIGHT MODE TOGGLE
@@ -673,19 +738,13 @@
         await fetchNews();
         await fetchGeomagneticStorms();
         updateLocalTime();
-
-        // INTERVALOS OPTIMIZADOS (en milisegundos)
         setInterval(updateLocalTime, 1000);
+        setInterval(updateAll, 30000);
+        setInterval(fetchSolarWeather, 300000);
+        setInterval(fetchDSNStatus, 60000); 
         setInterval(fetchNews, 600000);
-        setInterval(updateAll, 30000);              // 30 seg: Posición de la nave
-        setInterval(fetchDSNStatus, 120000);         // 2 min: Antenas DSN
-        setInterval(fetchSolarWeather, 600000);      // 10 min: Clima solar
-        setInterval(fetchGeomagneticStorms, 1800000);// 30 min: Tormentas (Suficiente)
-        }
+        setInterval(fetchGeomagneticStorms, 3600000);
+    }
     
     init();
-
- 
-</script>
-</body>
-</html>
+</script>  -->

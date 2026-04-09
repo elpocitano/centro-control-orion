@@ -1,0 +1,70 @@
+"""
+Script realiza la consulta a la API de la NASA, procesa el JSON y genera el archivo CSV listo para Cosmograph.
+
+"""
+
+Keyword arguments:
+argument -- description
+Return: return_description
+"""
+
+import requests
+import re
+import csv
+
+def descargar_trayectoria_artemis():
+    # 1. Configuración de la URL y parámetros
+    url = "https://nasa.gov"
+    params = {
+        'format': 'json',
+        'COMMAND': "'-1024'",
+        'EPHEM_TYPE': "'VECTORS'",
+        'CENTER': "'500@399'",
+        'START_TIME': "'2026-04-05'",
+        'STOP_TIME': "'2026-04-12'",
+        'STEP_SIZE': "'10m'", # Un punto cada 10 min para suavidad en Cosmograph
+        'OUT_UNITS': "'KM-S'",
+        'CSV_FORMAT': "'YES'"
+    }
+
+    print("Consultando a NASA JPL Horizons...")
+    
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        raw_text = data.get('result', '')
+
+        # 2. Extraer datos entre $$SOE y $$EOE
+        match = re.search(r"\$\$SOE(.*?)\$\$EOE", raw_text, re.DOTALL)
+        if not match:
+            print("Error: No se encontraron datos vectoriales en la respuesta.")
+            return
+
+        ephemeris_data = match.group(1).strip()
+
+        # 3. Limpiar y procesar filas (La API en modo CSV separa los campos por coma)
+        rows = []
+        for line in ephemeris_data.split('\n'):
+            parts = [p.strip() for p in line.split(',')]
+            if len(parts) >= 5:
+                # El formato vectorial CSV de NASA suele ser:
+                # Tiempo, Calendario, X, Y, Z, VX, VY, VZ...
+                # Extraemos X (índice 2), Y (índice 3), Z (índice 4)
+                rows.append([parts[2], parts[3], parts[4]])
+
+        # 4. Crear el archivo CSV
+        filename = "artemis_cosmograph.csv"
+        with open(filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['x', 'y', 'z']) # Encabezados
+            writer.writerows(rows)
+
+        print(f"¡Listo! Se guardaron {len(rows)} puntos en {filename}")
+        print("Ahora puedes subir este archivo a https://cosmograph.app")
+
+    except Exception as e:
+        print(f"Ocurrió un error: {e}")
+
+if __name__ == "__main__":
+    descargar_trayectoria_artemis()
