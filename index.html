@@ -132,7 +132,8 @@
 </div>
 
 <script type="module">
-    import { HORIZONS_API, ORION_ID, LAUNCH_DATE, MAX_DISTANCE } from './js/config.js';
+    import { HORIZONS_API, ORION_ID, LAUNCH_DATE, MAX_DISTANCE, NASA_API_KEY } from './js/config.js';
+
     import { fetchRealTelemetry, getBackupValues, calculateMoonDistance, 
              realDistance, realSpeed, realLightTime, lastFetchTime, realDataAvailable } 
             from './js/data/telemetry.js';
@@ -692,7 +693,7 @@
             
             const formatDate = (d) => d.toISOString().split('T')[0];
             
-            const url = `https://api.nasa.gov/DONKI/GST?startDate=${formatDate(startDate)}&endDate=${formatDate(endDate)}&api_key=DEMO_KEY`;
+const url = `https://api.nasa.gov/DONKI/GST?startDate=${formatDate(startDate)}&endDate=${formatDate(endDate)}&api_key=${NASA_API_KEY}`;
             const response = await fetch(url);
             
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -785,13 +786,15 @@
         await fetchNews();
         await fetchGeomagneticStorms();
         updateLocalTime();
+
+        // INTERVALOS OPTIMIZADOS (en milisegundos)
         setInterval(updateLocalTime, 1000);
-        setInterval(updateAll, 30000);
-        setInterval(fetchSolarWeather, 300000);
-        setInterval(fetchDSNStatus, 60000); 
         setInterval(fetchNews, 600000);
-        setInterval(fetchGeomagneticStorms, 3600000);
-    }
+        setInterval(updateAll, 30000);              // 30 seg: Posición de la nave
+        setInterval(fetchDSNStatus, 120000);         // 2 min: Antenas DSN
+        setInterval(fetchSolarWeather, 600000);      // 10 min: Clima solar
+        setInterval(fetchGeomagneticStorms, 1800000);// 30 min: Tormentas (Suficiente)
+        }
     
     init();
 
