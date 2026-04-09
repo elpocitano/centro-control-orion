@@ -1,11 +1,10 @@
 /**
- * mission-phases.js
  * 
  * Fases de la misión para dos usos:
  * - PHASES: reloj circular (start/end en 0-1, color)
  * - MISSION_PHASES: indicadores visuales (iconos, descripciones)
  * 
- * @module mission-phases
+ * @module domain/mission-phases
  */
 
 
