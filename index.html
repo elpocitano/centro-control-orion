@@ -94,7 +94,7 @@
 
         <div class="card">
             <div class="card-header"><i class="fas fa-newspaper"></i> NOTICIAS · ARTEMIS II</div>
-            <div id="newsFeed">Cargando noticias...</div>
+            <div id="missionNews">Cargando noticias...</div>
         </div>
     </div> 
 
@@ -133,19 +133,12 @@
 
 <script type="module">
     import { HORIZONS_API, ORION_ID, LAUNCH_DATE, MAX_DISTANCE, NASA_API_KEY } from './js/config.js';
-
     import { fetchRealTelemetry, getBackupValues, calculateMoonDistance, 
              realDistance, realSpeed, realLightTime, lastFetchTime, realDataAvailable } 
             from './js/data/telemetry.js';
-    
     import { fetchGeomagneticStorms, fetchSolarWeather } from './js/data/solar.js';
-
+    import {fetchNews} from './js/data/news.js';
     
-   // ============================================================
-    // DATOS TOMADOS DE JPL HORIZONS API
-    // NOTICIAS DE SPACE NEWS (FILTRADAS POR ARTEMIS II)
-    // ============================================================
-
     // ETAPAS de la misión
     const MISSION_EVENTS = [
         { time: '2026-04-01T22:35:00Z', event: 'Lanzamiento', desc: 'Despegue del SLS desde LC-39B' },
@@ -493,48 +486,6 @@
         setTimeout(() => {
             map.invalidateSize();
         }, 100);
-    }
-
-    // Noticias desde SpaceNews (filtradas por Artemis II)
-    async function fetchNews() {
-        const newsDiv = document.getElementById('newsFeed');
-        newsDiv.innerHTML = 'Cargando noticias...';
-        
-        try {
-            const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=https://spacenews.com/feed/';
-            const response = await fetch(proxyUrl);
-            const data = await response.json();
-            
-            if (data.items) {
-                // Filtrar solo noticias relacionadas con Artemis II, si no, salen muchas Militares
-                const artemisNews = data.items.filter(item => {
-                    const title = item.title.toLowerCase();
-                    return title.includes('artemis 2') || 
-                           title.includes('artemis ii') || 
-                           title.includes('orion') ||
-                           (title.includes('artemis') && !title.includes('artemis 1') && !title.includes('artemis i'));
-                });
-                
-                if (artemisNews.length === 0) {
-                    newsDiv.innerHTML = 'No hay noticias recientes de Artemis II en este momento.';
-                    return;
-                }
-                
-                newsDiv.innerHTML = artemisNews.slice(0, 10).map(news => `
-                    <div class="news-item">
-                        <i class="fas fa-newspaper"></i> 
-                        <a href="${news.link}" target="_blank">${news.title}</a>
-                        <div style="font-size: 0.7rem; margin-top: 3px;">${new Date(news.pubDate).toLocaleString('es-419')}</div>
-                        <div class="news-source">Fuente: SpaceNews</div>
-                    </div>
-                `).join('');
-            } else {
-                newsDiv.innerHTML = 'No se pudieron cargar noticias.';
-            }
-        } catch (error) {
-            console.error('Error fetching news:', error);
-            newsDiv.innerHTML = 'Error al cargar noticias. Verifique su conexión.';
-        }
     }
 
     // Tiempo transcurrido
