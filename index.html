@@ -133,7 +133,9 @@
 
 <script type="module">
     import { HORIZONS_API, ORION_ID, LAUNCH_DATE, MAX_DISTANCE } from './js/config.js';
-
+    import { fetchRealTelemetry, getBackupValues, calculateMoonDistance, 
+             realDistance, realSpeed, realLightTime, lastFetchTime, realDataAvailable } 
+            from './js/data/telemetry.js';
 
    // ============================================================
     // DATOS TOMADOS DE JPL HORIZONS API
@@ -162,89 +164,6 @@
         { name: 'REINGRESO', start: 0.85, end: 0.95, color: '#FF6600' },
         { name: 'AMERIZAJE', start: 0.95, end: 1.0, color: '#00FF88' }
     ];
-
-    // Cache de datos reales
-    let realDistance = null;
-    let realSpeed = null;
-    let realLightTime = null;
-    let lastFetchTime = 0;
-    let realDataAvailable = false;
-
-    // Obtener datos de JPL Horizons
-    // Cargar datos reales desde GitHub Actions
-    async function fetchRealTelemetry() {
-        realDataAvailable = true;
-        console.log('✅ Datos reales cargados:', realDistance, realSpeed);
-        try {
-            // Intentar cargar el archivo generado por GitHub Actions
-            const response = await fetch('./api/data.json');
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            
-            if (data.status === 'live' && data.distance_km) {
-                realDistance = data.distance_km;
-                realSpeed = data.velocity_kmh;
-                realLightTime = data.light_time_sec;
-                realDataAvailable = true;
-                lastFetchTime = Date.now();
-                
-                document.getElementById('connectionStatus').innerHTML = 'DATOS REALES JPL';
-                document.getElementById('connectionStatus').style.color = '#00FF88';
-                document.getElementById('sourceEarth').innerHTML = '✅ Fuente: JPL Horizons (GitHub Actions)';
-                return true;
-            }
-            throw new Error('Invalid data');
-        } catch (e) {
-            console.warn('Error loading local telemetry:', e);
-            realDataAvailable = false;
-            document.getElementById('connectionStatus').innerHTML = 'DATOS BASADOS EN TRAYECTORIA OFICIAL';
-            document.getElementById('connectionStatus').style.color = '#FFB800';
-            document.getElementById('sourceEarth').innerHTML = '⚠️ Fuente: Trayectoria oficial Artemis II (NASA)';
-            return false;
-        }
-    }
-
-    // Valores de respaldo
-    function getBackupValues(progress) {
-        let distance, speed;
-        if (progress < 0.15) {
-            distance = 6371 + (progress / 0.15) * 1000;
-            speed = 28000 * (progress / 0.15);
-        } else if (progress < 0.55) {
-            const t = (progress - 0.15) / 0.4;
-            distance = 7371 + t * (MAX_DISTANCE - 7371);
-            speed = 38000 * (1 - t * 0.3);
-        } else if (progress < 0.65) {
-            distance = MAX_DISTANCE;
-            speed = 8000;
-        } else {
-            const t = (progress - 0.65) / 0.35;
-            distance = MAX_DISTANCE * (1 - t) + 6371 * t;
-            speed = 8000 + t * 30000;
-        }
-        return { distance, speed };
-    }
-
-    // Calcular distancia a la Luna basado en datos reales de JPL Horizons
-    function calculateMoonDistance(earthDistance) {
-        // Distancia Tierra-Luna real promedio
-        const EARTH_MOON_DIST = 384400;
-        
-        // Punto de máximo acercamiento de Orion a la Luna (9,650 km desde superficie)
-        const CLOSEST_APPROACH = 9650;
-        
-        if (earthDistance < EARTH_MOON_DIST) {
-            // Orion está yendo hacia la Luna
-            // Progreso del viaje (0 = Tierra, 1 = Luna)
-            const progress = earthDistance / EARTH_MOON_DIST;
-            // Distancia a la Luna: comienza en 384,400 km y disminuye a 9,650 km
-            return EARTH_MOON_DIST - (EARTH_MOON_DIST - CLOSEST_APPROACH) * progress;
-        } else {
-            // Orion está regresando de la Luna
-            const returnProgress = (earthDistance - EARTH_MOON_DIST) / (432000 - EARTH_MOON_DIST);
-            return CLOSEST_APPROACH + (EARTH_MOON_DIST - CLOSEST_APPROACH) * returnProgress;
-        }
-    }
 
     // Progreso de la misión
     function getMissionProgress() {calculateMoonDistance
