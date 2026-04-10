@@ -1,0 +1,31 @@
+name: Update Artemis II Telemetry
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Fetch and Process
+        run: |
+          mkdir -p api
+          TODAY=$(date -u +"%Y-%m-%d")
+          TOMORROW=$(date -u -d "+1 day" +"%Y-%m-%d")
+          curl -s "https://ssd-api.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-1024'&EPHEM_TYPE='VECTORS'&CENTER='500@399'&START_TIME='${TODAY}'&STOP_TIME='${TOMORROW}'&STEP_SIZE='1d'&OUT_UNITS='KM-S'" > api/raw_response.json
+          python3 scripts/fetch_telemetry.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add api/data.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "data: update telemetry cache [skip ci]" && git push)
