@@ -14,31 +14,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Fetch and Process
         run: |
           mkdir -p api
           TODAY=$(date -u +"%Y-%m-%d")
           TOMORROW=$(date -u -d "+1 day" +"%Y-%m-%d")
-          
           curl -s "https://ssd-api.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-1024'&EPHEM_TYPE='VECTORS'&CENTER='500@399'&START_TIME='${TODAY}'&STOP_TIME='${TOMORROW}'&STEP_SIZE='1d'&OUT_UNITS='KM-S'" > api/raw_response.json
           
           python3 << 'PYEOF'
 import json, re, datetime, sys
-
 try:
     with open('api/raw_response.json') as f:
         data = json.load(f)
-    
     result = data.get('result', '')
     rg_match = re.search(r'RG=\s*([0-9.E+-]+)', result)
     rr_match = re.search(r'RR=\s*([0-9.E+-]+)', result)
     lt_match = re.search(r'LT=\s*([0-9.E+-]+)', result)
-
     if not rg_match:
-        print('No se detectaron datos en Horizons')
         sys.exit(0)
-
     output = {
         'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'distance_km': float(rg_match.group(1)),
@@ -47,13 +41,10 @@ try:
         'source': 'NASA JPL Horizons (Live)',
         'status': 'live'
     }
-
     with open('api/data.json', 'w') as out:
         json.dump(output, out, indent=2)
-    print("Success")
-
 except Exception as e:
-    print(f'Error: {e}')
+    print(e)
 PYEOF
 
       - name: Commit and push
