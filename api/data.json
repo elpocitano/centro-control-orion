@@ -1,9 +1,0 @@
-{
-  "timestamp": "2026-04-05T00:00:00Z",
-  "distance_km": 304262,
-  "velocity_kms": 0.917,
-  "velocity_kmh": 3301,
-  "light_time_sec": 1.015,
-  "source": "NASA JPL Horizons",
-  "status": "live"
-}
