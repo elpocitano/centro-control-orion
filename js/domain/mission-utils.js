@@ -38,8 +38,11 @@ export function generatePhaseClockSVG(progress) {
     const center = 100;
     
     let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Reloj de fases de misión">`;
+    
+    // 1. Círculo de fondo
     svg += `<circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="var(--bg-card)" stroke-width="20"/>`;
     
+    // 2. Arcos de las fases
     PHASES.forEach(phase => {
         const startAngle = phase.start * 2 * Math.PI - Math.PI/2;
         const endAngle = phase.end * 2 * Math.PI - Math.PI/2;
@@ -51,15 +54,25 @@ export function generatePhaseClockSVG(progress) {
         svg += `<path d="M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${phase.color}" stroke-width="20" opacity="0.8"/>`;
     });
     
+    // 3. Cálculos de la aguja (91% de progreso según tu consola)
     const angle = progress * 2 * Math.PI - Math.PI/2;
-    const needleX = center + (radius - 15) * Math.cos(angle);
-    const needleY = center + (radius - 15) * Math.sin(angle);
+    // Reducimos un poco el largo para que no toque el borde exterior
+    const needleX = center + (radius - 10) * Math.cos(angle);
+    const needleY = center + (radius - 10) * Math.sin(angle);
     
-    // Mejoras visuales: sombras o gradientes podrían ir aquí
-    svg += `<circle cx="${center}" cy="${center}" r="10" fill="var(--accent-color)"/>`;
-    svg += `<line x1="${center}" y1="${center}" x2="${needleX}" y2="${needleY}" stroke="var(--text-main)" stroke-width="4" stroke-linecap="round"/>`;
+    // 4. DIBUJO DE LA AGUJA (Debe ir después de las fases para estar encima)
+    // Cambiamos var(--text-main) por un color explícito o var(--accent-color) para asegurar visibilidad
+    svg += `<line x1="${center}" y1="${center}" x2="${needleX}" y2="${needleY}" 
+                  stroke="var(--accent-color, #FFB800)" 
+                  stroke-width="5" 
+                  stroke-linecap="round" 
+                  style="filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));"/>`;
+    
+    // 5. Centro del reloj (encima de la aguja)
+    svg += `<circle cx="${center}" cy="${center}" r="8" fill="var(--accent-color, #FFB800)"/>`;
+    svg += `<circle cx="${center}" cy="${center}" r="4" fill="white"/>`;
+    
     svg += `</svg>`;
-    
     return svg;
 }
 
