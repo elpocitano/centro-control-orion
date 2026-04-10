@@ -2,33 +2,27 @@ name: Update Artemis II Telemetry
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # Se ejecuta cada 30 minutos
-  workflow_dispatch:          # Permite ejecución manual desde la pestaña Actions
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    # Permisos necesarios para que la Action pueda escribir en el repo
-    permissions:
-      contents: write
-      
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
       
       - name: Fetch telemetry from JPL Horizons
         run: |
-          # Asegurar que el directorio existe
           mkdir -p api
-          
-          # Fechas para la consulta
           TODAY=$(date -u +"%Y-%m-%d")
           TOMORROW=$(date -u -d "+1 day" +"%Y-%m-%d")
           
-          # Llamada a la API de JPL Horizons (Orion: -1024, Centro: Tierra)
-          curl -s "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-1024'&EPHEM_TYPE='VECTORS'&CENTER='500@399'&START_TIME='${TODAY}'&STOP_TIME='${TOMORROW}'&STEP_SIZE='1d'&OUT_UNITS='KM-S'" > api/raw_response.json
+          curl -s "https://ssd-api.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-1024'&EPHEM_TYPE='VECTORS'&CENTER='500@399'&START_TIME='${TODAY}'&STOP_TIME='${TOMORROW}'&STEP_SIZE='1d'&OUT_UNITS='KM-S'" > api/raw_response.json
           
-          # Procesamiento de datos con Python
           python3 -c "
 import json, re, datetime, sys
 
@@ -37,21 +31,18 @@ try:
         data = json.load(f)
     
     result = data.get('result', '')
-    
-    # Buscamos RG (Distancia), RR (Velocidad Radial) y LT (Tiempo de luz)
-    # El regex maneja números enteros, decimales y notación científica (E+05)
     rg_match = re.search(r'RG=\s*([0-9.E+-]+)', result)
     rr_match = re.search(r'RR=\s*([0-9.E+-]+)', result)
     lt_match = re.search(r'LT=\s*([0-9.E+-]+)', result)
 
     if not rg_match:
-        print('Error: No se encontraron datos válidos en la respuesta de la NASA')
-        sys.exit(0) # Salimos sin error para no romper el workflow, pero no actualizamos
+        print('Error: No data in NASA response')
+        sys.exit(0)
 
     output = {
         'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'distance_km': float(rg_match.group(1)),
-        'velocity_kmh': abs(float(rr_match.group(1)) * 3600), # Convertimos km/s a km/h
+        'velocity_kmh': abs(float(rr_match.group(1)) * 3600),
         'light_time_sec': float(lt_match.group(1)),
         'source': 'NASA JPL Horizons (Live)',
         'status': 'live'
@@ -59,17 +50,16 @@ try:
 
     with open('api/data.json', 'w') as out:
         json.dump(output, out, indent=2)
-        
-    print(f'✅ Datos guardados: {output[\"distance_km\"]} km')
+    print(f'Saved: {output[\"distance_km\"]} km')
 
 except Exception as e:
-    print(f'❌ Error procesando el JSON: {e}')
+    print(f'Error: {e}')
+    sys.exit(1)
 "
       
-      - name: Commit and Push Changes
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add api/data.json
-          # Solo hace commit si el archivo cambió
-          git diff --quiet && git diff --staged --quiet || (git commit -m "data: update telemetry cache [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update telemetry [skip ci]" && git push)
