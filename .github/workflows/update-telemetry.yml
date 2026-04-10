@@ -23,7 +23,7 @@ jobs:
           curl -s "https://ssd-api.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-1024'&EPHEM_TYPE='VECTORS'&CENTER='500@399'&START_TIME='${TODAY}'&STOP_TIME='${TOMORROW}'&STEP_SIZE='1d'&OUT_UNITS='KM-S'" > api/raw_response.json
           
           python3 << 'PYEOF'
-import json, re, datetime, sys
+          import json, re, datetime, sys
 try:
     with open('api/raw_response.json') as f:
         data = json.load(f)
