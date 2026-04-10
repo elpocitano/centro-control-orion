@@ -15,15 +15,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Fetch telemetry from JPL Horizons
+      - name: Fetch and Process
         run: |
           mkdir -p api
           TODAY=$(date -u +"%Y-%m-%d")
           TOMORROW=$(date -u -d "+1 day" +"%Y-%m-%d")
           
+          # Descarga
           curl -s "https://ssd-api.jpl.nasa.gov/api/horizons.api?format=json&COMMAND='-1024'&EPHEM_TYPE='VECTORS'&CENTER='500@399'&START_TIME='${TODAY}'&STOP_TIME='${TOMORROW}'&STEP_SIZE='1d'&OUT_UNITS='KM-S'" > api/raw_response.json
           
-          python3 -c "
+          # Python en bloque limpio
+          python3 << 'EOF'
 import json, re, datetime, sys
 
 try:
@@ -36,7 +38,7 @@ try:
     lt_match = re.search(r'LT=\s*([0-9.E+-]+)', result)
 
     if not rg_match:
-        print('Error: No data in NASA response')
+        print('No data found')
         sys.exit(0)
 
     output = {
@@ -50,13 +52,12 @@ try:
 
     with open('api/data.json', 'w') as out:
         json.dump(output, out, indent=2)
-    print(f'Saved: {output[\"distance_km\"]} km')
+    print("Success")
 
 except Exception as e:
     print(f'Error: {e}')
-    sys.exit(1)
-"
-      
+EOF
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
